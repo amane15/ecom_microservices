@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -21,9 +22,11 @@ type application struct {
 }
 
 func main() {
+	godotenv.Load()
+
 	cfg := config{
 		port: 4000,
-		dsn:  "postgres://postgres:postgres@users-db:5432/users?sslmode=disable",
+		dsn:  os.Getenv("DATABASE_URL"),
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))

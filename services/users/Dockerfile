@@ -6,4 +6,6 @@ RUN go install github.com/air-verse/air@latest
 
 COPY go.* ./
 
+RUN go mod download
+
 CMD ["air"]
