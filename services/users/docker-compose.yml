@@ -1,0 +1,25 @@
+services:
+  users-service:
+    build:
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - users-db
+
+  users-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: users-db
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - usersdb_data:/var/lib/postgresql/data
+
+volumes:
+  usersdb_data:
