@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/amane15/ecom_microservice/services/user/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -19,6 +20,7 @@ type config struct {
 type application struct {
 	config
 	logger *slog.Logger
+	users  data.UserModel
 }
 
 func main() {
@@ -43,6 +45,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		users:  data.UserModel{DB: db},
 	}
 
 	err = app.server()
