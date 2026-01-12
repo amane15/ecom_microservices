@@ -1,0 +1,25 @@
+services:
+  products-service:
+    build:
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - "4000:4000"
+    depends_on:
+      - products-db
+
+  products-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: products
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - productsdb_data:/var/lib/postgresql/data
+
+volumes:
+  productsdb_data:
