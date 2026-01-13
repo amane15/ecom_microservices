@@ -1,0 +1,13 @@
+ALTER TABLE products
+    ALTER COLUMN sku TYPE TEXT,
+    ALTER COLUMN slug TYPE TEXT,
+    ALTER COLUMN name TYPE TEXT,
+    ALTER COLUMN meta_title TYPE TEXT;
+
+ALTER TABLE products_variants
+    ALTER COLUMN sku TYPE TEXT,
+    ALTER COLUMN name TYPE TEXT;
+
+ALTER TABLE categories
+    ALTER COLUMN name TYPE TEXT,
+    ALTER COLUMN slug TYPE TEXT;
