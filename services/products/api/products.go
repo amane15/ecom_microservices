@@ -11,14 +11,12 @@ import (
 
 func (app *application) createProductHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Sku              string  `json:"sku"`
 		Name             string  `json:"name"`
 		Slug             string  `json:"slug"`
 		ShortDescription *string `json:"short_description"`
 		Description      *string `json:"description"`
 		MetaTitle        *string `json:"meta_title"`
 		MetaDescription  *string `json:"meta_description"`
-		IsActive         *bool   `json:"is_active"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -28,9 +26,9 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	product := &data.Product{
-		Sku:  input.Sku,
-		Name: input.Name,
-		Slug: input.Slug,
+		Name:   input.Name,
+		Slug:   input.Slug,
+		Status: data.ProductStatusDraft,
 	}
 	v := validator.New()
 
@@ -49,12 +47,6 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 		product.MetaDescription = *input.MetaDescription
 	}
 
-	if input.IsActive != nil {
-		product.IsActive = *input.IsActive
-	} else {
-		product.IsActive = true
-	}
-
 	if data.ValidateProduct(v, product); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
@@ -63,10 +55,8 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 	err = app.products.Create(product)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrDuplicateSku):
-			app.badRequestResponse(w, r, err)
 		case errors.Is(err, data.ErrDuplicateSlug):
-			app.badRequestResponse(w, r, err)
+			app.badRequestResponse(w, r, errors.New("product already exists"))
 		default:
 			app.serverErrorResponse(w, r, err)
 		}

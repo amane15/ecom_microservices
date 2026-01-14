@@ -16,16 +16,24 @@ var (
 	ErrDuplicateSku  = errors.New("sku already exists")
 )
 
+type ProductStatus string
+
+const (
+	ProductStatusDraft     ProductStatus = "draft"
+	ProductStatusPublished ProductStatus = "published"
+	ProductStatusArchived  ProductStatus = "archived"
+)
+
 type Product struct {
-	ID               int    `json:"id"`
-	Sku              string `json:"sku"`
-	Name             string `json:"name"`
-	Slug             string `json:"slug"`
-	Description      string `json:"description,omitempty"`
-	ShortDescription string `json:"short_description,omitempty"`
-	MetaTitle        string `json:"meta_title,omitempty"`
-	MetaDescription  string `json:"meta_description,omitempty"`
-	IsActive         bool   `json:"is_active"`
+	ID               int           `json:"id"`
+	Name             string        `json:"name"`
+	Slug             string        `json:"slug"`
+	Description      string        `json:"description,omitempty"`
+	ShortDescription string        `json:"short_description,omitempty"`
+	MetaTitle        string        `json:"meta_title,omitempty"`
+	MetaDescription  string        `json:"meta_description,omitempty"`
+	Status           ProductStatus `json:"product_status"`
+	DefaultVariantID int           `json:"default_variant_id"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -41,15 +49,15 @@ func (m ProductModel) Get(id int) (*Product, error) {
 }
 
 func (m ProductModel) Create(product *Product) error {
-	query := `INSERT INTO products(sku, name, slug, description, short_description, meta_title, meta_description, is_active)
-	 VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-	 RETURNING id, created_at, updated_at`
+	query := `INSERT INTO products(name, slug, description, short_description,
+				meta_title, meta_description, status, default_variant_id)
+	 	VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+	 	RETURNING id, created_at, updated_at`
 
 	args := []any{
-		product.Sku, product.Name,
-		product.Slug, product.Description,
+		product.Name, product.Slug, product.Description,
 		product.ShortDescription, product.MetaTitle,
-		product.MetaDescription, product.IsActive,
+		product.MetaDescription, product.Status, product.DefaultVariantID,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -83,12 +91,8 @@ func (m ProductModel) Delete(id int) error {
 }
 
 func ValidateProduct(v *validator.Validator, product *Product) {
-	v.Check(product.Sku != "", "sku", "must be provided")
-	v.Check(utf8.RuneCountInString(product.Sku) >= 64, "sku", "must not be more that 64 characters long")
-	v.Check(validator.Matches(product.Sku, validator.HyphenatedRegex), "sku", "must be in a valid format. For e.g. lenovo-r5-16g")
-
 	v.Check(product.Slug != "", "slug", "must be provided")
-	v.Check(utf8.RuneCountInString(product.Slug) >= 128, "slug", "must not be more that 128 characters long")
+	v.Check(utf8.RuneCountInString(product.Slug) <= 128, "slug", "must not be more that 128 characters long")
 	v.Check(validator.Matches(product.Slug, validator.HyphenatedRegex), "slug", "must be in a valid format. For e.g. lenovo-r5-16g")
 
 	v.Check(product.Name != "", "name", "must be provided")
