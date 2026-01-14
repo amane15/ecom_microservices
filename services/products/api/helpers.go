@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -82,4 +83,13 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	}
 
 	return nil
+}
+
+func (app *application) readIDParam(r *http.Request) (int64, error) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, err
+	}
+
+	return id, nil
 }

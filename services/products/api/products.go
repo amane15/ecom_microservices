@@ -30,21 +30,22 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 		Slug:   input.Slug,
 		Status: data.ProductStatusDraft,
 	}
+
 	v := validator.New()
 
 	if input.ShortDescription != nil {
-		product.ShortDescription = *input.ShortDescription
+		product.ShortDescription = input.ShortDescription
 	}
 	if input.Description != nil {
-		product.Description = *input.Description
+		product.Description = input.Description
 	}
 
 	if input.MetaTitle != nil {
-		product.MetaTitle = *input.MetaTitle
+		product.MetaTitle = input.MetaTitle
 		v.Check(utf8.RuneCountInString(*input.MetaTitle) <= 255, "meta_title", "must not be more than 255 characters long")
 	}
 	if input.MetaDescription != nil {
-		product.MetaDescription = *input.MetaDescription
+		product.MetaDescription = input.MetaDescription
 	}
 
 	if data.ValidateProduct(v, product); !v.Valid() {
@@ -69,6 +70,28 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (app *application) getProductHandler(w http.ResponseWriter, r *http.Request) {}
+func (app *application) getProductHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	product, err := app.products.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
 
 func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Request) {}

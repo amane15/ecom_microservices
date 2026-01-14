@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	ErrDuplicateSlug = errors.New("slug already exists")
-	ErrDuplicateSku  = errors.New("sku already exists")
+	ErrDuplicateSlug  = errors.New("slug already exists")
+	ErrDuplicateSku   = errors.New("sku already exists")
+	ErrRecordNotFound = errors.New("record not found")
 )
 
 type ProductStatus string
@@ -25,27 +26,83 @@ const (
 )
 
 type Product struct {
-	ID               int           `json:"id"`
+	ID               int64         `json:"id"`
 	Name             string        `json:"name"`
 	Slug             string        `json:"slug"`
-	Description      string        `json:"description,omitempty"`
-	ShortDescription string        `json:"short_description,omitempty"`
-	MetaTitle        string        `json:"meta_title,omitempty"`
-	MetaDescription  string        `json:"meta_description,omitempty"`
+	Description      *string       `json:"description,omitempty"`
+	ShortDescription *string       `json:"short_description,omitempty"`
+	MetaTitle        *string       `json:"meta_title,omitempty"`
+	MetaDescription  *string       `json:"meta_description,omitempty"`
 	Status           ProductStatus `json:"product_status"`
-	DefaultVariantID int           `json:"default_variant_id"`
+	DefaultVariantID *int64        `json:"default_variant_id"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+type productRow struct {
+	ID               int64
+	Name             string
+	Slug             string
+	Description      sql.NullString
+	ShortDescription sql.NullString
+	MetaTitle        sql.NullString
+	MetaDescription  sql.NullString
+	Status           ProductStatus
+	DefaultVariantID sql.NullInt64
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt sql.NullTime
 }
 
 type ProductModel struct {
 	DB *sql.DB
 }
 
-func (m ProductModel) Get(id int) (*Product, error) {
-	return nil, nil
+func (m ProductModel) Get(id int64) (*Product, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+	SELECT id, name, slug, description, short_description, meta_title,
+		meta_description, status, default_variant_id,
+		created_at, updated_at, deleted_at
+	FROM products
+	WHERE id = $1
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	productRow := &productRow{}
+
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
+		&productRow.ID,
+		&productRow.Name,
+		&productRow.Slug,
+		&productRow.Description,
+		&productRow.ShortDescription,
+		&productRow.MetaTitle,
+		&productRow.MetaDescription,
+		&productRow.Status,
+		&productRow.DefaultVariantID,
+		&productRow.CreatedAt,
+		&productRow.UpdatedAt,
+		&productRow.DeletedAt,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	product := mapProductRow(productRow)
+	return product, nil
 }
 
 func (m ProductModel) Create(product *Product) error {
@@ -108,4 +165,41 @@ func handleUniqueViolationError(pqError *pq.Error) error {
 	default:
 		return pqError
 	}
+}
+
+func mapProductRow(pr *productRow) *Product {
+	product := &Product{
+		ID:        pr.ID,
+		Name:      pr.Name,
+		Slug:      pr.Slug,
+		Status:    pr.Status,
+		CreatedAt: pr.CreatedAt,
+		UpdatedAt: pr.UpdatedAt,
+	}
+
+	if pr.Description.Valid {
+		product.Description = &pr.Description.String
+	}
+
+	if pr.ShortDescription.Valid {
+		product.ShortDescription = &pr.ShortDescription.String
+	}
+
+	if pr.MetaTitle.Valid {
+		product.MetaTitle = &pr.MetaTitle.String
+	}
+
+	if pr.MetaDescription.Valid {
+		product.MetaDescription = &pr.MetaDescription.String
+	}
+
+	if pr.DefaultVariantID.Valid {
+		product.DefaultVariantID = &pr.DefaultVariantID.Int64
+	}
+
+	if pr.DeletedAt.Valid {
+		product.DeletedAt = &pr.DeletedAt.Time
+	}
+
+	return product
 }
