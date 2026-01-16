@@ -191,7 +191,7 @@ func (m ProductModel) Delete(id int) error {
 	return nil
 }
 
-func andleUniqueViolationError(pqError *pq.Error) error {
+func handleUniqueViolationError(pqError *pq.Error) error {
 	switch pqError.Constraint {
 	case "products_sku_key":
 		return ErrDuplicateSku

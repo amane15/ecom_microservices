@@ -21,6 +21,7 @@ type application struct {
 	config
 	logger   *slog.Logger
 	products data.ProductModel
+	variants data.ProductVariantModel
 }
 
 func main() {
@@ -46,6 +47,7 @@ func main() {
 		config:   cfg,
 		logger:   logger,
 		products: data.ProductModel{DB: db},
+		variants: data.ProductVariantModel{DB: db},
 	}
 
 	err = app.server()

@@ -1,36 +1,220 @@
 package data
 
 import (
+	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
 	"time"
+
+	"github.com/lib/pq"
+	"github.com/shopspring/decimal"
 )
 
-// id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-// product_id BIGINT,
-//
-// slug VARCHAR(128) NOT NULL UNIQUE,
-// name VARCHAR(255),
-//
-// price DECIMAL(6, 2),
-//
-// is_active BOOLEAN NOT NULL DEFAULT true,
-//
-// created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-// updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-// deleted_at TIMESTAMPTZ
 type ProductVariant struct {
-	ID        int64   `json:"id"`
-	ProductID int64   `json:"product_id"`
-	Slug      string  `json:"slug"`
-	Name      string  `json:"name"`
-	Price     float64 `json:"price"`
-	IsActive  bool    `json:"is_active"`
+	ID        int64           `json:"id"`
+	ProductID int64           `json:"product_id"`
+	Slug      string          `json:"slug"`
+	Name      string          `json:"name"`
+	Price     decimal.Decimal `json:"price"`
+	IsActive  bool            `json:"is_active"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	DeletedAt time.Time `json:"deleted_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+type UpdateVariantInput struct {
+	Name     *string          `json:"name"`
+	Price    *decimal.Decimal `json:"price"`
+	IsActive *bool            `json:"is_active"`
+}
+
+type CreateVariantInput struct {
+	ProductID int64           `json:"product_id"`
+	Slug      string          `json:"slug"`
+	Name      string          `json:"name"`
+	Price     decimal.Decimal `json:"price"`
+	IsActive  *bool           `json:"is_active"`
 }
 
 type ProductVariantModel struct {
 	DB *sql.DB
+}
+
+func (m ProductVariantModel) Get(id int64) (*ProductVariant, error) {
+	query := `
+	SELECT id, product_id, slug, name, price, is_active,
+		created_at, updated_at, deleted_at
+	FROM products_variants
+	WHERE id = $1
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	variant := &ProductVariant{}
+	deletedAt := sql.NullTime{}
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
+		&variant.ID,
+		&variant.ProductID,
+		&variant.Slug,
+		&variant.Name,
+		&variant.Price,
+		&variant.IsActive,
+		&variant.CreatedAt,
+		&variant.UpdatedAt,
+		&deletedAt,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	if deletedAt.Valid {
+		variant.DeletedAt = &deletedAt.Time
+	}
+
+	return variant, nil
+}
+
+func (m ProductVariantModel) Insert(variant *ProductVariant) error {
+	query := `
+	INSERT INTO products_variants(product_id, slug, name, price, is_active)
+	VALUES($1, $2, $3, $4, $5)
+	RETURNING id, created_at, updated_at
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	args := []any{variant.ProductID, variant.Slug, variant.Name, variant.Price, variant.IsActive}
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(
+		&variant.ID,
+		&variant.CreatedAt,
+		&variant.UpdatedAt,
+	)
+	if err != nil {
+		if pqError, ok := err.(*pq.Error); ok {
+			if pqError.Code == "23505" {
+				return ErrDuplicateSlug
+			}
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m ProductVariantModel) Update(id int64, variantInput *UpdateVariantInput) (*ProductVariant, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query, args, err := buildPatchVariantQuery(id, variantInput)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	variant := &ProductVariant{}
+	deleteAt := sql.NullTime{}
+	err = m.DB.QueryRowContext(ctx, query, args...).Scan(
+		&variant.ID,
+		&variant.ProductID,
+		&variant.Slug,
+		&variant.Name,
+		&variant.Price,
+		&variant.IsActive,
+		&variant.CreatedAt,
+		&variant.UpdatedAt,
+		&deleteAt,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	if deleteAt.Valid {
+		variant.DeletedAt = &deleteAt.Time
+	}
+
+	return variant, nil
+}
+
+func (m ProductVariantModel) Delete(id int64) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+
+	query := `DELETE FROM products_variants WHERE id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func buildPatchVariantQuery(id int64, input *UpdateVariantInput) (string, []any, error) {
+	setClauses := []string{}
+	args := []any{}
+	argPos := 1
+
+	if input.Name != nil {
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, *input.Name)
+		argPos++
+	}
+
+	if input.Price != nil {
+		setClauses = append(setClauses, fmt.Sprintf("price = $%d::DECIMAL(6, 2)", argPos))
+		args = append(args, *input.Price)
+		argPos++
+	}
+
+	if input.IsActive != nil {
+		setClauses = append(setClauses, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *input.IsActive)
+		argPos++
+	}
+
+	if len(setClauses) == 0 {
+		return "", nil, ErrNoFieldsToUpdate
+	}
+
+	query := fmt.Sprintf(`
+	UPDATE products_variants
+	SET %s, updated_at = now()
+	WHERE id = $%d 
+	RETURNING id, product_id, slug, name, price, is_active,
+	created_at, updated_at, deleted_at 
+	`, strings.Join(setClauses, ", "), argPos)
+
+	args = append(args, id)
+
+	return query, args, nil
 }
