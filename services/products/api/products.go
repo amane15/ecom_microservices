@@ -94,4 +94,59 @@ func (app *application) getProductHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Request) {}
+func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	productInput := data.UpdateProductRow{}
+
+	err = app.readJSON(w, r, &productInput)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if productInput.Name == nil && productInput.Description == nil &&
+		productInput.ShortDescription == nil && productInput.MetaTitle == nil &&
+		productInput.MetaDescription == nil {
+		app.badRequestResponse(w, r, errors.New("at least one field must be provided"))
+		return
+	}
+
+	v := validator.New()
+	if data.ValidateUpdateProduct(v, &productInput); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	product, err := app.products.Update(id, &productInput)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoFieldsToUpdate):
+			app.badRequestResponse(w, r, errors.New("no fields were provided"))
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *http.Request) {
+	_, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+}
+
+func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.Request) {}

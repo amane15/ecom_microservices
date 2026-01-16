@@ -4,17 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
-	"unicode/utf8"
 
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/validator"
 	"github.com/lib/pq"
 )
 
 var (
-	ErrDuplicateSlug  = errors.New("slug already exists")
-	ErrDuplicateSku   = errors.New("sku already exists")
-	ErrRecordNotFound = errors.New("record not found")
+	ErrDuplicateSlug    = errors.New("slug already exists")
+	ErrDuplicateSku     = errors.New("sku already exists")
+	ErrRecordNotFound   = errors.New("record not found")
+	ErrNoFieldsToUpdate = errors.New("no fields to update")
 )
 
 type ProductStatus string
@@ -55,6 +56,14 @@ type productRow struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt sql.NullTime
+}
+
+type UpdateProductRow struct {
+	Name             *string `json:"name"`
+	Description      *string `json:"description"`
+	ShortDescription *string `json:"short_description"`
+	MetaTitle        *string `json:"meta_title,omitempty"`
+	MetaDescription  *string `json:"meta_description,omitempty"`
 }
 
 type ProductModel struct {
@@ -138,8 +147,43 @@ func (m ProductModel) Create(product *Product) error {
 	return nil
 }
 
-func (m ProductModel) Update(product *Product) error {
-	return nil
+func (m ProductModel) Update(id int64, productInput *UpdateProductRow) (*Product, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+	query, args, err := buildPatchQuery(id, productInput)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	product := &Product{}
+	err = m.DB.QueryRowContext(ctx, query, args...).Scan(
+		&product.ID,
+		&product.Name,
+		&product.Slug,
+		&product.Description,
+		&product.ShortDescription,
+		&product.MetaTitle,
+		&product.MetaDescription,
+		&product.Status,
+		&product.DefaultVariantID,
+		&product.CreatedAt,
+		&product.UpdatedAt,
+		&product.DeletedAt,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return product, nil
 }
 
 // Soft delete only
@@ -147,16 +191,7 @@ func (m ProductModel) Delete(id int) error {
 	return nil
 }
 
-func ValidateProduct(v *validator.Validator, product *Product) {
-	v.Check(product.Slug != "", "slug", "must be provided")
-	v.Check(utf8.RuneCountInString(product.Slug) <= 128, "slug", "must not be more that 128 characters long")
-	v.Check(validator.Matches(product.Slug, validator.HyphenatedRegex), "slug", "must be in a valid format. For e.g. lenovo-r5-16g")
-
-	v.Check(product.Name != "", "name", "must be provided")
-	v.Check(utf8.RuneCountInString(product.Name) <= 255, "name", "must not be more than 255 characters long")
-}
-
-func handleUniqueViolationError(pqError *pq.Error) error {
+func andleUniqueViolationError(pqError *pq.Error) error {
 	switch pqError.Constraint {
 	case "products_sku_key":
 		return ErrDuplicateSku
@@ -202,4 +237,55 @@ func mapProductRow(pr *productRow) *Product {
 	}
 
 	return product
+}
+
+func buildPatchQuery(id int64, input *UpdateProductRow) (string, []any, error) {
+	setClauses := []string{}
+	args := []any{}
+	argPos := 1
+
+	if input.Name != nil {
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, *input.Name)
+		argPos++
+	}
+
+	if input.Description != nil {
+		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argPos))
+		args = append(args, *input.Description)
+		argPos++
+	}
+
+	if input.ShortDescription != nil {
+		setClauses = append(setClauses, fmt.Sprintf("short_description = $%d", argPos))
+		args = append(args, *input.ShortDescription)
+		argPos++
+	}
+
+	if input.MetaTitle != nil {
+		setClauses = append(setClauses, fmt.Sprintf("meta_title = $%d", argPos))
+		args = append(args, *input.MetaTitle)
+		argPos++
+	}
+	if input.MetaDescription != nil {
+		setClauses = append(setClauses, fmt.Sprintf("meta_description = $%d", argPos))
+		args = append(args, *input.MetaDescription)
+		argPos++
+	}
+
+	if len(setClauses) == 0 {
+		return "", nil, ErrNoFieldsToUpdate
+	}
+
+	query := fmt.Sprintf(`
+	UPDATE products
+	SET %s, updated_at = now()
+	WHERE id = $%d 
+	RETURNING id, name, slug, description, short_description, meta_title, 
+	meta_description, status, default_variant_id, created_at, updated_at, deleted_at
+	`, strings.Join(setClauses, ", "), argPos)
+
+	args = append(args, id)
+
+	return query, args, nil
 }
