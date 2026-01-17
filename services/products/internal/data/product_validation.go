@@ -22,6 +22,6 @@ func ValidateProduct(v *validator.Validator, product *Product) {
 	ValidateName(v, product.Name)
 }
 
-func ValidateUpdateProduct(v *validator.Validator, productInput *UpdateProductRow) {
+func ValidateUpdateProduct(v *validator.Validator, productInput *UpdateProductInput) {
 	ValidateName(v, *productInput.Name)
 }

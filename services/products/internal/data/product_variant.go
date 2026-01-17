@@ -179,6 +179,48 @@ func (m ProductVariantModel) Delete(id int64) error {
 	return nil
 }
 
+func (m ProductVariantModel) GetVariantCountForProduct(id int64) (int64, error) {
+	if id < 1 {
+		return 0, ErrRecordNotFound
+	}
+	query := `SELECT count(*) FROM products_variants WHERE product_id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var count int64
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(&count)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return 0, ErrRecordNotFound
+		default:
+			return 0, err
+		}
+	}
+
+	return count, nil
+}
+
+func (m ProductVariantModel) IsVariantExists(id int64) (bool, error) {
+	if id < 1 {
+		return false, ErrRecordNotFound
+	}
+
+	query := `SELECT EXISTS(SELECT 1 FROM products_variants WHERE id = $1) AS "exists"`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	exists := false
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
 func buildPatchVariantQuery(id int64, input *UpdateVariantInput) (string, []any, error) {
 	setClauses := []string{}
 	args := []any{}

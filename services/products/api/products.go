@@ -100,7 +100,7 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 		app.notFoundResponse(w, r)
 		return
 	}
-	productInput := data.UpdateProductRow{}
+	productInput := data.UpdateProductInput{}
 
 	err = app.readJSON(w, r, &productInput)
 	if err != nil {
@@ -142,11 +142,130 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := app.readIDParam(r)
+	app.logger.Info("Change hit")
+	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
+
+	var input struct {
+		Status *data.ProductStatus `json:"status"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	if input.Status == nil {
+		v.AddError("status", "status must be provided")
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	updateInput := &data.UpdateProductInput{}
+	status := *input.Status
+
+	switch status {
+	case data.ProductStatusDraft, data.ProductStatusArchived, data.ProductStatusActive:
+		if status == data.ProductStatusActive {
+			count, err := app.variants.GetVariantCountForProduct(id)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					count = 0
+				default:
+					app.serverErrorResponse(w, r, err)
+					return
+				}
+			}
+
+			if status == data.ProductStatusActive && count == 0 {
+				app.badRequestResponse(w, r, errors.New("to make a product active you need have at least 1 variant"))
+				return
+			}
+		}
+		updateInput.Status = &status
+	default:
+		v.AddError("status", "must be a valid status")
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+
+	}
+
+	product, err := app.products.Update(id, updateInput)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
-func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.Request) {}
+func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	var input struct {
+		DefaultVariantID *int64 `json:"default_variant_id"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	if input.DefaultVariantID == nil {
+		v.AddError("default_variant_id", "must be provided")
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	variantID := *input.DefaultVariantID
+	exists, err := app.variants.IsVariantExists(variantID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if !exists {
+		app.badRequestResponse(w, r, errors.New("variant does not exists"))
+		return
+	}
+
+	updateInput := &data.UpdateProductInput{}
+	updateInput.DefaultVariantID = input.DefaultVariantID
+
+	product, err := app.products.Update(id, updateInput)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.badRequestResponse(w, r, errors.New("product does not exists"))
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

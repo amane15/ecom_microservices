@@ -21,9 +21,9 @@ var (
 type ProductStatus string
 
 const (
-	ProductStatusDraft     ProductStatus = "draft"
-	ProductStatusPublished ProductStatus = "published"
-	ProductStatusArchived  ProductStatus = "archived"
+	ProductStatusDraft    ProductStatus = "draft"
+	ProductStatusActive   ProductStatus = "active"
+	ProductStatusArchived ProductStatus = "archived"
 )
 
 type Product struct {
@@ -58,12 +58,14 @@ type productRow struct {
 	DeletedAt sql.NullTime
 }
 
-type UpdateProductRow struct {
-	Name             *string `json:"name"`
-	Description      *string `json:"description"`
-	ShortDescription *string `json:"short_description"`
-	MetaTitle        *string `json:"meta_title,omitempty"`
-	MetaDescription  *string `json:"meta_description,omitempty"`
+type UpdateProductInput struct {
+	Name             *string        `json:"name"`
+	Description      *string        `json:"description"`
+	ShortDescription *string        `json:"short_description"`
+	MetaTitle        *string        `json:"meta_title,omitempty"`
+	MetaDescription  *string        `json:"meta_description,omitempty"`
+	Status           *ProductStatus `json:"status"`
+	DefaultVariantID *int64         `json:"default_variant_id"`
 }
 
 type ProductModel struct {
@@ -147,7 +149,7 @@ func (m ProductModel) Create(product *Product) error {
 	return nil
 }
 
-func (m ProductModel) Update(id int64, productInput *UpdateProductRow) (*Product, error) {
+func (m ProductModel) Update(id int64, productInput *UpdateProductInput) (*Product, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -239,7 +241,7 @@ func mapProductRow(pr *productRow) *Product {
 	return product
 }
 
-func buildPatchQuery(id int64, input *UpdateProductRow) (string, []any, error) {
+func buildPatchQuery(id int64, input *UpdateProductInput) (string, []any, error) {
 	setClauses := []string{}
 	args := []any{}
 	argPos := 1
@@ -273,6 +275,18 @@ func buildPatchQuery(id int64, input *UpdateProductRow) (string, []any, error) {
 		argPos++
 	}
 
+	if input.Status != nil {
+		setClauses = append(setClauses, fmt.Sprintf("status = $%d", argPos))
+		args = append(args, *input.Status)
+		argPos++
+	}
+
+	if input.DefaultVariantID != nil {
+		setClauses = append(setClauses, fmt.Sprintf("default_variant_id = $%d", argPos))
+		args = append(args, *input.DefaultVariantID)
+		argPos++
+	}
+
 	if len(setClauses) == 0 {
 		return "", nil, ErrNoFieldsToUpdate
 	}
@@ -282,6 +296,7 @@ func buildPatchQuery(id int64, input *UpdateProductRow) (string, []any, error) {
 	SET %s, updated_at = now()
 	WHERE id = $%d 
 	RETURNING id, name, slug, description, short_description, meta_title, 
+
 	meta_description, status, default_variant_id, created_at, updated_at, deleted_at
 	`, strings.Join(setClauses, ", "), argPos)
 
