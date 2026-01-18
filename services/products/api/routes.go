@@ -16,5 +16,10 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("PATCH /v1/variants/{id}", app.updateVariantHandler)
 	mux.HandleFunc("DELETE /v1/variants/{id}", app.deleteVariantHandler)
 
+	mux.HandleFunc("GET /v1/categories/{id}", app.getCategoryHandler)
+	mux.HandleFunc("POST /v1/categories", app.createCategoryHandler)
+	mux.HandleFunc("PATCH /v1/categories/{id}", app.updateCategoryHandler)
+	mux.HandleFunc("PATCH /v1/categories/{id}/mark", app.markActiveHandler)
+
 	return mux
 }

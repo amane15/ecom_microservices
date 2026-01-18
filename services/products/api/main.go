@@ -19,9 +19,10 @@ type config struct {
 
 type application struct {
 	config
-	logger   *slog.Logger
-	products data.ProductModel
-	variants data.ProductVariantModel
+	logger     *slog.Logger
+	products   data.ProductModel
+	variants   data.ProductVariantModel
+	categories data.CategoryModel
 }
 
 func main() {
@@ -44,10 +45,11 @@ func main() {
 	logger.Info("database connection pool established")
 
 	app := &application{
-		config:   cfg,
-		logger:   logger,
-		products: data.ProductModel{DB: db},
-		variants: data.ProductVariantModel{DB: db},
+		config:     cfg,
+		logger:     logger,
+		products:   data.ProductModel{DB: db},
+		variants:   data.ProductVariantModel{DB: db},
+		categories: data.CategoryModel{DB: db},
 	}
 
 	err = app.server()
