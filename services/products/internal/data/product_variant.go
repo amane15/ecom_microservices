@@ -221,6 +221,57 @@ func (m ProductVariantModel) IsVariantExists(id int64) (bool, error) {
 	return exists, nil
 }
 
+func (m ProductVariantModel) GetVariantsByProduct(productID int64) ([]*ProductVariant, error) {
+	if productID < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+	SELECT id, product_id, slug, name, price, is_active,
+		created_at, updated_at, deleted_at
+	FROM products_variants
+	WHERE product_id = $1
+	ORDER BY id
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	variants := []*ProductVariant{}
+
+	for rows.Next() {
+		var variant ProductVariant
+
+		err := rows.Scan(
+			&variant.ID,
+			&variant.ProductID,
+			&variant.Slug,
+			&variant.Name,
+			&variant.Price,
+			&variant.IsActive,
+			&variant.CreatedAt,
+			&variant.UpdatedAt,
+			&variant.DeletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		variants = append(variants, &variant)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return variants, nil
+}
+
 func buildPatchVariantQuery(id int64, input *UpdateVariantInput) (string, []any, error) {
 	setClauses := []string{}
 	args := []any{}

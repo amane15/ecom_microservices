@@ -269,3 +269,39 @@ func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	limit := app.readInt(queryParams, "limit", 10)
+	offset := app.readInt(queryParams, "offset", 0)
+
+	products, err := app.products.GetAll(limit, offset)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"products": products}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listProductVariantsHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	variants, err := app.variants.GetVariantsByProduct(id)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"variants": variants}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

@@ -223,6 +223,59 @@ func mapProductRow(pr *productRow) *Product {
 	return product
 }
 
+func (m ProductModel) GetAll(limit, offset int) ([]*Product, error) {
+	query := `
+	SELECT id, name, slug, description, short_description, meta_title,
+		meta_description, status, default_variant_id,
+		created_at, updated_at, deleted_at
+	FROM products
+	WHERE status = 'active'
+	ORDER BY id 
+	LIMIT $1 OFFSET $2
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := []*Product{}
+
+	for rows.Next() {
+		var product Product
+
+		err := rows.Scan(
+			&product.ID,
+			&product.Name,
+			&product.Slug,
+			&product.Description,
+			&product.ShortDescription,
+			&product.MetaTitle,
+			&product.MetaDescription,
+			&product.Status,
+			&product.DefaultVariantID,
+			&product.CreatedAt,
+			&product.UpdatedAt,
+			&product.DeletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		products = append(products, &product)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
+
 func buildPatchQuery(id int64, input *UpdateProductInput) (string, []any, error) {
 	setClauses := []string{}
 	args := []any{}
