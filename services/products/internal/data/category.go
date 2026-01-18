@@ -159,6 +159,59 @@ func (m CategoryModel) Update(id int64, input *UpdateCategoryInput) (*Category, 
 	return category, nil
 }
 
+func (m CategoryModel) GetAll(limit, offset int) ([]*Category, error) {
+	query := `
+	SELECT id, name, slug, description, is_active,
+		created_at, updated_at, deleted_at
+	FROM categories
+	WHERE is_active = true
+	ORDER BY id
+	LIMIT $1 OFFSET $2
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categories := []*Category{}
+
+	deletedAt := sql.NullTime{}
+	for rows.Next() {
+		var category Category
+
+		err := rows.Scan(
+			&category.ID,
+			&category.Name,
+			&category.Slug,
+			&category.Description,
+			&category.IsActive,
+			&category.CreatedAt,
+			&category.UpdatedAt,
+			&deletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if deletedAt.Valid {
+			category.DeletedAt = &deletedAt.Time
+		}
+
+		categories = append(categories, &category)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+}
+
 func buildPatchCategoryQuery(id int64, input *UpdateCategoryInput) (string, []any, error) {
 	setClauses := []string{}
 	args := []any{}

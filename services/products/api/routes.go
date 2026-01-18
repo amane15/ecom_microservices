@@ -20,6 +20,7 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("POST /v1/categories", app.createCategoryHandler)
 	mux.HandleFunc("PATCH /v1/categories/{id}", app.updateCategoryHandler)
 	mux.HandleFunc("PATCH /v1/categories/{id}/mark", app.markActiveHandler)
+	mux.HandleFunc("GET /v1/categories", app.listCategoriesHandler)
 
 	return mux
 }

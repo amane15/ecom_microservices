@@ -166,3 +166,20 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	limit := app.readInt(queryParams, "limit", 10)
+	offset := app.readInt(queryParams, "offset", 0)
+
+	categories, err := app.categories.GetAll(limit, offset)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"categories": categories}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
