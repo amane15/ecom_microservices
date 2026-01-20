@@ -1,0 +1,25 @@
+services:
+  carts-service:
+    build:
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - "4000:4000"
+    depends_on:
+      - orders-db
+
+  orders-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orders
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - ordersdb:/var/lib/postgresql/data
+
+volumes:
+  ordersdb:
