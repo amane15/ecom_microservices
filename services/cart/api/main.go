@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/amane15/ecom_microservice/services/carts/internal/data"
+	"github.com/amane15/ecom_microservice/services/cart/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )

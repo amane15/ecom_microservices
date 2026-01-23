@@ -4,8 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/data"
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/validator"
+	"github.com/amane15/ecom_microservice/pkg/validator"
 )
 
 func (app *application) getCategoryHandler(w http.ResponseWriter, r *http.Request) {

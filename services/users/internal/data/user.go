@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/amane15/ecom_microservice/services/user/internal/validator"
+	"github.com/amane15/ecom_microservice/pkg/validator"
 	"github.com/lib/pq"
 )
 

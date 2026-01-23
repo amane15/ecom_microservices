@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/amane15/ecom_microservice/services/carts/internal/data"
-	"github.com/amane15/ecom_microservice/services/carts/internal/validator"
+	"github.com/amane15/ecom_microservice/pkg/validator"
+	"github.com/amane15/ecom_microservice/services/cart/internal/data"
 )
 
 func (app *application) getCartItemHandler(w http.ResponseWriter, r *http.Request) {

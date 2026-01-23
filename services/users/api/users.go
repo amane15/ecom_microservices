@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/amane15/ecom_microservice/services/user/internal/data"
-	"github.com/amane15/ecom_microservice/services/user/internal/validator"
+	"github.com/amane15/ecom_microservice/pkg/validator"
+	"github.com/amane15/ecom_microservice/services/users/internal/data"
 )
 
 func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request) {

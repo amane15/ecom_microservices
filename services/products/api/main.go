@@ -10,9 +10,8 @@ import (
 	"time"
 
 	productpb "github.com/amane15/ecom_microservice/proto/product/v1"
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/data"
+	"github.com/amane15/ecom_microservice/services/products/internal/data"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 )
 
@@ -47,17 +46,6 @@ func main() {
 	defer db.Close()
 
 	logger.Info("database connection pool established")
-
-	lis, err := net.Listen("tcp", "50051")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	grpcServer := grpc.NewServer()
-
-	productpb.RegisterProductServiceServer(grpcServer, &ProductGRPCServer{})
-	logger.Info("Product grpc running on :50051")
-	log.Fatal(grpcServer.Serve(lis))
 
 	app := &application{
 		config:     cfg,

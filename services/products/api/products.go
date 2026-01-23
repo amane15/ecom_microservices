@@ -5,8 +5,7 @@ import (
 	"net/http"
 	"unicode/utf8"
 
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/data"
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/validator"
+	"github.com/amane15/ecom_microservice/pkg/validator"
 )
 
 func (app *application) createProductHandler(w http.ResponseWriter, r *http.Request) {

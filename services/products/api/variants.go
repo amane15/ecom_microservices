@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/data"
-	"github.com/amane15/ecom_microservice/services/proudcts/internal/validator"
+	"github.com/amane15/ecom_microservice/pkg/validator"
+	"github.com/amane15/ecom_microservice/services/products/internal/data"
 )
 
 func (app *application) getVariantHandler(w http.ResponseWriter, r *http.Request) {
