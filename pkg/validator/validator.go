@@ -5,7 +5,10 @@ import (
 	"unicode"
 )
 
-var HyphenatedRegex = regexp.MustCompile("^[a-z0-9]+(?:-[a-z0-9]+)*$")
+var (
+	HyphenatedRegex = regexp.MustCompile("^[a-z0-9]+(?:-[a-z0-9]+)*$")
+	EmailRX         = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+)
 
 type Validator struct {
 	Errors map[string]string
