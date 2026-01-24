@@ -1,4 +1,4 @@
-package main
+package http
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"github.com/amane15/ecom_microservice/services/users/internal/data"
 )
 
-func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Email     string `json:"email"`
 		FirstName string `json:"first_name"`
@@ -18,7 +18,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 
 	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.httpErrRes.BadRequestResponse(w, r, err)
+		h.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -31,65 +31,65 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	v := validator.New()
 
 	if data.ValidateUser(v, user); !v.Valid() {
-		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
+		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
-	err = app.users.Insert(user)
+	err = h.app.Models.Users.Insert(user)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateEmail):
-			app.httpErrRes.BadRequestResponse(w, r, errors.New("user already exist"))
+			h.httpErrRes.BadRequestResponse(w, r, errors.New("user already exist"))
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"user": user}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) getUserByIDHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getUserByIDHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.httpErrRes.NotFoundResponse(w, r)
+		h.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
-	user, err := app.users.GetByID(id)
+	user, err := h.app.Models.Users.GetByID(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.httpErrRes.NotFoundResponse(w, r)
+			h.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"user": user}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) updateUserHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.httpErrRes.NotFoundResponse(w, r)
+		h.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
-	user, err := app.users.GetByID(id)
+	user, err := h.app.Models.Users.GetByID(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.httpErrRes.NotFoundResponse(w, r)
+			h.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
@@ -101,7 +101,7 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.httpErrRes.BadRequestResponse(w, r, err)
+		h.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -114,18 +114,18 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 
 	v := validator.New()
 	if data.ValidateUser(v, user); !v.Valid() {
-		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
+		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
-	err = app.users.Update(user)
+	err = h.app.Models.Users.Update(user)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"user": user}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
