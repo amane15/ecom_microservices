@@ -1,4 +1,4 @@
-package main
+package http
 
 import (
 	"errors"
@@ -9,36 +9,36 @@ import (
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 )
 
-func (app *application) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.httpErrRes.NotFoundResponse(w, r)
+		h.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
-	category, err := app.categories.Get(id)
+	category, err := h.app.Models.Categories.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.httpErrRes.NotFoundResponse(w, r)
+			h.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	input := data.CreateCategoryInput{}
 
 	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.httpErrRes.BadRequestResponse(w, r, err)
+		h.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -60,17 +60,17 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 	v := validator.New()
 
 	if data.ValidateCategory(v, category); !v.Valid() {
-		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
+		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
-	err = app.categories.Insert(category)
+	err = h.app.Models.Categories.Insert(category)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
-			app.httpErrRes.BadRequestResponse(w, r, errors.New("category already exists"))
+			h.httpErrRes.BadRequestResponse(w, r, errors.New("category already exists"))
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 
 		return
@@ -78,45 +78,45 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.httpErrRes.NotFoundResponse(w, r)
+		h.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
 	input := &data.UpdateCategoryInput{}
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.httpErrRes.BadRequestResponse(w, r, err)
+		h.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
 	if input.Name == nil && input.IsActive == nil && input.Description == nil {
-		app.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
+		h.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
 		return
 	}
 
 	v := validator.New()
 
 	if data.ValidateCategoryUpdate(v, input); !v.Valid() {
-		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
+		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
-	category, err := app.categories.Update(id, input)
+	category, err := h.app.Models.Categories.Update(id, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrNoFieldsToUpdate):
-			app.httpErrRes.BadRequestResponse(w, r, errors.New("no fields were provided"))
+			h.httpErrRes.BadRequestResponse(w, r, errors.New("no fields were provided"))
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.httpErrRes.NotFoundResponse(w, r)
+			h.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 
 		return
@@ -124,14 +124,14 @@ func (app *application) updateCategoryHandler(w http.ResponseWriter, r *http.Req
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) markActiveHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.httpErrRes.NotFoundResponse(w, r)
+		h.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.httpErrRes.BadRequestResponse(w, r, err)
+		h.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -147,40 +147,40 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 
 	if input.IsActive == nil {
 		v.AddError("is_active", "must be provided")
-		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
+		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
-	category, err := app.categories.Update(id, input)
+	category, err := h.app.Models.Categories.Update(id, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.httpErrRes.NotFoundResponse(w, r)
+			h.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	limit := httpx.ReadInt(queryParams, "limit", 10)
 	offset := httpx.ReadInt(queryParams, "offset", 0)
 
-	categories, err := app.categories.GetAll(limit, offset)
+	categories, err := h.app.Models.Categories.GetAll(limit, offset)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"categories": categories}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }

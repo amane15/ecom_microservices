@@ -7,36 +7,23 @@ import (
 	"os"
 	"time"
 
-	"github.com/amane15/ecom_microservice/pkg/httpx"
-	"github.com/amane15/ecom_microservice/services/products/internal/data"
+	"github.com/amane15/ecom_microservice/internal/platform"
+	"github.com/amane15/ecom_microservice/services/products/internal"
+	"github.com/amane15/ecom_microservice/services/products/internal/transport/http"
 	"github.com/joho/godotenv"
 )
-
-type config struct {
-	dsn  string
-	port int
-}
-
-type application struct {
-	config
-	logger     *slog.Logger
-	httpErrRes *httpx.ErrorResponse
-	products   data.ProductModel
-	variants   data.ProductVariantModel
-	categories data.CategoryModel
-}
 
 func main() {
 	godotenv.Load()
 
-	cfg := config{
-		port: 4000,
-		dsn:  os.Getenv("DATABASE_URL"),
+	cfg := internal.Config{
+		DbDSN: os.Getenv("DATABASE_URL"),
+		Port:  4000,
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	db, err := openDB(cfg.dsn)
+	db, err := openDB(cfg.DbDSN)
 	if err != nil {
 		logger.Error(err.Error())
 		return
@@ -45,19 +32,18 @@ func main() {
 
 	logger.Info("database connection pool established")
 
-	app := &application{
-		config:     cfg,
-		logger:     logger,
-		httpErrRes: httpx.NewErrorResponseSender(logger),
-		products:   data.ProductModel{DB: db},
-		variants:   data.ProductVariantModel{DB: db},
-		categories: data.CategoryModel{DB: db},
-	}
+	app := internal.NewApplication(cfg, logger, db)
 
-	err = app.server()
+	handler := http.NewHandler(app)
+
+	logger.Info("Starting server on address :4001")
+	srv := platform.NewHTTPServer(":4001", handler.Routes())
+	err = srv.Start()
 	if err != nil {
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
+	defer srv.Shutdown(context.Background())
 }
 
 func openDB(dsn string) (*sql.DB, error) {
