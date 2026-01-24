@@ -1,8 +1,8 @@
-package main
+package http
 
 import "net/http"
 
-func (app *application) routes() http.Handler {
+func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	return mux

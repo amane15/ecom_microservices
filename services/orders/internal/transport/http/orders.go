@@ -1,4 +1,4 @@
-package main
+package http
 
 import (
 	"errors"
@@ -8,34 +8,34 @@ import (
 	"github.com/amane15/ecom_microservice/services/orders/internal/data"
 )
 
-func (app *application) getOrderHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getOrderHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.httpErrRes.NotFoundResponse(w, r)
+		h.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
-	order, err := app.orders.Get(id)
+	order, err := h.app.Models.Orders.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.httpErrRes.NotFoundResponse(w, r)
+			h.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.httpErrRes.ServerErrorResponse(w, r, err)
+			h.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"order": order}, nil)
 	if err != nil {
-		app.httpErrRes.ServerErrorResponse(w, r, err)
+		h.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) createOrderHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch cart
 	// Parse cart and cart_items into order and order orderItems
 	// create full order
 	// return response
 }
-func (app *application) updateOrderHandler(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) updateOrderHandler(w http.ResponseWriter, r *http.Request) {}
