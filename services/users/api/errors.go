@@ -2,6 +2,8 @@ package main
 
 import (
 	"net/http"
+
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 )
 
 func (app *application) logError(r *http.Request, err error) {
@@ -14,9 +16,9 @@ func (app *application) logError(r *http.Request, err error) {
 }
 
 func (app *application) errorReponse(w http.ResponseWriter, r *http.Request, status int, message any) {
-	env := envelope{"error": message}
+	env := httpx.Envelope{"error": message}
 
-	err := app.writeJSON(w, status, env, nil)
+	err := httpx.WriteJSON(w, status, env, nil)
 	if err != nil {
 		app.logError(r, err)
 		w.WriteHeader(500)

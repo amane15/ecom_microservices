@@ -4,12 +4,13 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/pkg/validator"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 )
 
 func (app *application) getVariantHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -27,7 +28,7 @@ func (app *application) getVariantHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"variant": variant}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -36,7 +37,7 @@ func (app *application) getVariantHandler(w http.ResponseWriter, r *http.Request
 func (app *application) createVariantHandler(w http.ResponseWriter, r *http.Request) {
 	input := &data.CreateVariantInput{}
 
-	err := app.readJSON(w, r, input)
+	err := httpx.ReadJSON(w, r, input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -73,14 +74,14 @@ func (app *application) createVariantHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"variant": variant}, nil)
+	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -88,7 +89,7 @@ func (app *application) updateVariantHandler(w http.ResponseWriter, r *http.Requ
 
 	input := &data.UpdateVariantInput{}
 
-	err = app.readJSON(w, r, input)
+	err = httpx.ReadJSON(w, r, input)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -117,14 +118,14 @@ func (app *application) updateVariantHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"variant": variant}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) deleteVariantHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -141,7 +142,7 @@ func (app *application) deleteVariantHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusNoContent, nil, nil)
+	err = httpx.WriteJSON(w, http.StatusNoContent, nil, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

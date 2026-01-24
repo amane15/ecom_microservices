@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/pkg/validator"
 	"github.com/amane15/ecom_microservice/services/users/internal/data"
 )
@@ -16,7 +16,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		LastName  string `json:"last_name"`
 	}
 
-	err := app.readJSON(w, r, &input)
+	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -46,15 +46,15 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
+	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) getUserByIDHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil || id < 1 {
+	id, err := httpx.ReadIDParam(r)
+	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
@@ -70,18 +70,19 @@ func (app *application) getUserByIDHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil || id < 1 {
+	id, err := httpx.ReadIDParam(r)
+	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
+
 	user, err := app.users.GetByID(id)
 	if err != nil {
 		switch {
@@ -98,7 +99,7 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 		LastName  *string `json:"last_name"`
 	}
 
-	err = app.readJSON(w, r, &input)
+	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -123,7 +124,7 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

@@ -4,11 +4,13 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/pkg/validator"
+	"github.com/amane15/ecom_microservice/services/products/internal/data"
 )
 
 func (app *application) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -25,7 +27,7 @@ func (app *application) getCategoryHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"category": category}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -34,7 +36,7 @@ func (app *application) getCategoryHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	input := data.CreateCategoryInput{}
 
-	err := app.readJSON(w, r, &input)
+	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -74,21 +76,21 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"category": category}, nil)
+	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"category": category}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
 	input := &data.UpdateCategoryInput{}
-	err = app.readJSON(w, r, &input)
+	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -120,14 +122,14 @@ func (app *application) updateCategoryHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"category": category}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -135,7 +137,7 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 
 	input := &data.UpdateCategoryInput{}
 
-	err = app.readJSON(w, r, &input)
+	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -160,7 +162,7 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"category": category}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -168,8 +170,8 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 
 func (app *application) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	limit := app.readInt(queryParams, "limit", 10)
-	offset := app.readInt(queryParams, "offset", 0)
+	limit := httpx.ReadInt(queryParams, "limit", 10)
+	offset := httpx.ReadInt(queryParams, "offset", 0)
 
 	categories, err := app.categories.GetAll(limit, offset)
 	if err != nil {
@@ -177,7 +179,7 @@ func (app *application) listCategoriesHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"categories": categories}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"categories": categories}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

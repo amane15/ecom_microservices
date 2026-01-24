@@ -29,7 +29,7 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (m UserModel) GetByID(id int) (*User, error) {
+func (m UserModel) GetByID(id int64) (*User, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}

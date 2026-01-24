@@ -7,8 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/amane15/ecom_microservice/services/products/internal/data"
+	"github.com/amane15/ecom_microservice/services/carts/internal/data"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type config struct {
@@ -18,10 +19,9 @@ type config struct {
 
 type application struct {
 	config
-	logger     *slog.Logger
-	products   data.ProductModel
-	variants   data.ProductVariantModel
-	categories data.CategoryModel
+	logger    *slog.Logger
+	carts     data.CartModel
+	cartItems data.CartItemModel
 }
 
 func main() {
@@ -44,11 +44,10 @@ func main() {
 	logger.Info("database connection pool established")
 
 	app := &application{
-		config:     cfg,
-		logger:     logger,
-		products:   data.ProductModel{DB: db},
-		variants:   data.ProductVariantModel{DB: db},
-		categories: data.CategoryModel{DB: db},
+		config:    cfg,
+		logger:    logger,
+		carts:     data.CartModel{DB: db},
+		cartItems: data.CartItemModel{DB: db},
 	}
 
 	err = app.server()

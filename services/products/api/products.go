@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"unicode/utf8"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/pkg/validator"
+	"github.com/amane15/ecom_microservice/services/products/internal/data"
 )
 
 func (app *application) createProductHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +20,7 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 		MetaDescription  *string `json:"meta_description"`
 	}
 
-	err := app.readJSON(w, r, &input)
+	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -63,14 +65,14 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"product": product}, nil)
+	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"product": product}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) getProductHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -87,21 +89,21 @@ func (app *application) getProductHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 	productInput := data.UpdateProductInput{}
 
-	err = app.readJSON(w, r, &productInput)
+	err = httpx.ReadJSON(w, r, &productInput)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -134,7 +136,7 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -142,7 +144,7 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 
 func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *http.Request) {
 	app.logger.Info("Change hit")
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -152,7 +154,7 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 		Status *data.ProductStatus `json:"status"`
 	}
 
-	err = app.readJSON(w, r, &input)
+	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -207,14 +209,14 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -224,7 +226,7 @@ func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.
 		DefaultVariantID *int64 `json:"default_variant_id"`
 	}
 
-	err = app.readJSON(w, r, &input)
+	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -263,7 +265,7 @@ func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"product": product}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -271,8 +273,8 @@ func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.
 
 func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	limit := app.readInt(queryParams, "limit", 10)
-	offset := app.readInt(queryParams, "offset", 0)
+	limit := httpx.ReadInt(queryParams, "limit", 10)
+	offset := httpx.ReadInt(queryParams, "offset", 0)
 
 	products, err := app.products.GetAll(limit, offset)
 	if err != nil {
@@ -280,14 +282,14 @@ func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"products": products}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"products": products}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) listProductVariantsHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -299,7 +301,7 @@ func (app *application) listProductVariantsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"variants": variants}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variants": variants}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
