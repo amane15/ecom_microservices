@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/services/users/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -19,8 +20,9 @@ type config struct {
 
 type application struct {
 	config
-	logger *slog.Logger
-	users  data.UserModel
+	logger     *slog.Logger
+	httpErrRes *httpx.ErrorResponse
+	users      data.UserModel
 }
 
 func main() {
@@ -43,9 +45,10 @@ func main() {
 	logger.Info("database connection pool established")
 
 	app := &application{
-		config: cfg,
-		logger: logger,
-		users:  data.UserModel{DB: db},
+		config:     cfg,
+		logger:     logger,
+		httpErrRes: httpx.NewErrorResponseSender(logger),
+		users:      data.UserModel{DB: db},
 	}
 
 	err = app.server()

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/services/carts/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -19,9 +20,10 @@ type config struct {
 
 type application struct {
 	config
-	logger    *slog.Logger
-	carts     data.CartModel
-	cartItems data.CartItemModel
+	logger     *slog.Logger
+	httpErrRes *httpx.ErrorResponse
+	carts      data.CartModel
+	cartItems  data.CartItemModel
 }
 
 func main() {
@@ -44,10 +46,11 @@ func main() {
 	logger.Info("database connection pool established")
 
 	app := &application{
-		config:    cfg,
-		logger:    logger,
-		carts:     data.CartModel{DB: db},
-		cartItems: data.CartItemModel{DB: db},
+		config:     cfg,
+		logger:     logger,
+		httpErrRes: httpx.NewErrorResponseSender(logger),
+		carts:      data.CartModel{DB: db},
+		cartItems:  data.CartItemModel{DB: db},
 	}
 
 	err = app.server()

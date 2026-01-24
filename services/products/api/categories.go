@@ -12,7 +12,7 @@ import (
 func (app *application) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -20,16 +20,16 @@ func (app *application) getCategoryHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
@@ -38,7 +38,7 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 
 	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -60,7 +60,7 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 	v := validator.New()
 
 	if data.ValidateCategory(v, category); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -68,9 +68,9 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
-			app.badRequestResponse(w, r, errors.New("category already exists"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("category already exists"))
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 
 		return
@@ -78,33 +78,33 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
 	input := &data.UpdateCategoryInput{}
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
 	if input.Name == nil && input.IsActive == nil && input.Description == nil {
-		app.badRequestResponse(w, r, errors.New("at least one field must be provided"))
+		app.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
 		return
 	}
 
 	v := validator.New()
 
 	if data.ValidateCategoryUpdate(v, input); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -112,11 +112,11 @@ func (app *application) updateCategoryHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrNoFieldsToUpdate):
-			app.badRequestResponse(w, r, errors.New("no fields were provided"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("no fields were provided"))
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 
 		return
@@ -124,14 +124,14 @@ func (app *application) updateCategoryHandler(w http.ResponseWriter, r *http.Req
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -147,7 +147,7 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 
 	if input.IsActive == nil {
 		v.AddError("is_active", "must be provided")
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -155,16 +155,16 @@ func (app *application) markActiveHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"category": category}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
@@ -175,12 +175,12 @@ func (app *application) listCategoriesHandler(w http.ResponseWriter, r *http.Req
 
 	categories, err := app.categories.GetAll(limit, offset)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"categories": categories}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }

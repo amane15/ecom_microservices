@@ -18,7 +18,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 
 	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -31,7 +31,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	v := validator.New()
 
 	if data.ValidateUser(v, user); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -39,23 +39,23 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateEmail):
-			app.badRequestResponse(w, r, errors.New("user already exist"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("user already exist"))
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"user": user}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) getUserByIDHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -63,23 +63,23 @@ func (app *application) getUserByIDHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"user": user}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -87,9 +87,9 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
@@ -101,7 +101,7 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -114,18 +114,18 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 
 	v := validator.New()
 	if data.ValidateUser(v, user); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
 	err = app.users.Update(user)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"user": user}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }

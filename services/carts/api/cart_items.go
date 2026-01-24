@@ -12,7 +12,7 @@ import (
 func (app *application) getCartItemHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -20,23 +20,23 @@ func (app *application) getCartItemHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"item": item}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) createCartItemHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -48,14 +48,14 @@ func (app *application) createCartItemHandler(w http.ResponseWriter, r *http.Req
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
 	v := validator.New()
 
 	if input.ProductID == nil && input.VariantID == nil && input.Quantity == nil {
-		app.badRequestResponse(w, r, errors.New("at least one field must be provided"))
+		app.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
 		return
 	}
 
@@ -65,7 +65,7 @@ func (app *application) createCartItemHandler(w http.ResponseWriter, r *http.Req
 	v.Check(*input.Quantity >= 1, "quantity", "must be greater that zero")
 
 	if !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -80,23 +80,23 @@ func (app *application) createCartItemHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrItemAlreadyExists):
-			app.badRequestResponse(w, r, errors.New("item already exists in a cart"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("item already exists in a cart"))
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"item": item}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) deleteCartItemHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -104,15 +104,15 @@ func (app *application) deleteCartItemHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusNoContent, nil, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }

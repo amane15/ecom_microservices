@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 	"github.com/joho/godotenv"
 )
@@ -19,6 +20,7 @@ type config struct {
 type application struct {
 	config
 	logger     *slog.Logger
+	httpErrRes *httpx.ErrorResponse
 	products   data.ProductModel
 	variants   data.ProductVariantModel
 	categories data.CategoryModel
@@ -46,6 +48,7 @@ func main() {
 	app := &application{
 		config:     cfg,
 		logger:     logger,
+		httpErrRes: httpx.NewErrorResponseSender(logger),
 		products:   data.ProductModel{DB: db},
 		variants:   data.ProductVariantModel{DB: db},
 		categories: data.CategoryModel{DB: db},

@@ -11,7 +11,7 @@ import (
 func (app *application) getOrderHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -19,16 +19,16 @@ func (app *application) getOrderHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"order": order}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 

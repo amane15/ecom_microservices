@@ -11,7 +11,7 @@ import (
 func (app *application) getCartHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -19,16 +19,16 @@ func (app *application) getCartHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"cart": cart}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
@@ -39,24 +39,24 @@ func (app *application) createCartHandler(w http.ResponseWriter, r *http.Request
 
 	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
 	if input.UserID == nil {
-		app.badRequestResponse(w, r, errors.New("user_id must be provided"))
+		app.httpErrRes.BadRequestResponse(w, r, errors.New("user_id must be provided"))
 		return
 	}
 
 	cart, err := app.carts.Insert(*input.UserID)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"cart": cart}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 }
@@ -64,7 +64,7 @@ func (app *application) createCartHandler(w http.ResponseWriter, r *http.Request
 func (app *application) deleteCartHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -72,15 +72,15 @@ func (app *application) deleteCartHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusNoContent, nil, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }

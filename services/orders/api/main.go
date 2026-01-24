@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/services/orders/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -20,6 +21,7 @@ type config struct {
 type application struct {
 	config
 	logger     *slog.Logger
+	httpErrRes *httpx.ErrorResponse
 	orders     data.OrderModel
 	orderItems data.OrderItemModel
 }
@@ -46,6 +48,7 @@ func main() {
 	app := &application{
 		config:     cfg,
 		logger:     logger,
+		httpErrRes: httpx.NewErrorResponseSender(logger),
 		orders:     data.OrderModel{DB: db},
 		orderItems: data.OrderItemModel{DB: db},
 	}

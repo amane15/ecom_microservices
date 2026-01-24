@@ -12,7 +12,7 @@ import (
 func (app *application) getVariantHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -20,9 +20,9 @@ func (app *application) getVariantHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 
 		return
@@ -30,7 +30,7 @@ func (app *application) getVariantHandler(w http.ResponseWriter, r *http.Request
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
@@ -39,7 +39,7 @@ func (app *application) createVariantHandler(w http.ResponseWriter, r *http.Requ
 
 	err := httpx.ReadJSON(w, r, input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 	app.logger.Info("variant", "price", input.Price)
@@ -59,7 +59,7 @@ func (app *application) createVariantHandler(w http.ResponseWriter, r *http.Requ
 	v := validator.New()
 
 	if data.ValidateVariant(v, variant); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -67,23 +67,23 @@ func (app *application) createVariantHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
-			app.badRequestResponse(w, r, errors.New("variant with this slug already exists"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("variant with this slug already exists"))
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -91,19 +91,19 @@ func (app *application) updateVariantHandler(w http.ResponseWriter, r *http.Requ
 
 	err = httpx.ReadJSON(w, r, input)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	if input.Name == nil && input.IsActive == nil && input.Price == nil {
-		app.badRequestResponse(w, r, errors.New("at least one field must be provided"))
+		app.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
 		return
 	}
 
 	v := validator.New()
 
 	if data.ValidateUpdateVariantInput(v, input); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -111,23 +111,23 @@ func (app *application) updateVariantHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) deleteVariantHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -135,15 +135,15 @@ func (app *application) deleteVariantHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusNoContent, nil, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
-}
+.}

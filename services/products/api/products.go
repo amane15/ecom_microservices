@@ -22,7 +22,7 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 
 	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	if data.ValidateProduct(v, product); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -58,23 +58,23 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
-			app.badRequestResponse(w, r, errors.New("product already exists"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("product already exists"))
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"product": product}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) getProductHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -82,43 +82,43 @@ func (app *application) getProductHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 	productInput := data.UpdateProductInput{}
 
 	err = httpx.ReadJSON(w, r, &productInput)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
 	if productInput.Name == nil && productInput.Description == nil &&
 		productInput.ShortDescription == nil && productInput.MetaTitle == nil &&
 		productInput.MetaDescription == nil {
-		app.badRequestResponse(w, r, errors.New("at least one field must be provided"))
+		app.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
 		return
 	}
 
 	v := validator.New()
 	if data.ValidateUpdateProduct(v, &productInput); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -126,11 +126,11 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrNoFieldsToUpdate):
-			app.badRequestResponse(w, r, errors.New("no fields were provided"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("no fields were provided"))
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 
 		return
@@ -138,7 +138,7 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
@@ -146,7 +146,7 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 	app.logger.Info("Change hit")
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -156,7 +156,7 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -164,7 +164,7 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 
 	if input.Status == nil {
 		v.AddError("status", "status must be provided")
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 	updateInput := &data.UpdateProductInput{}
@@ -179,20 +179,20 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 				case errors.Is(err, data.ErrRecordNotFound):
 					count = 0
 				default:
-					app.serverErrorResponse(w, r, err)
+					app.httpErrRes.ServerErrorResponse(w, r, err)
 					return
 				}
 			}
 
 			if status == data.ProductStatusActive && count == 0 {
-				app.badRequestResponse(w, r, errors.New("to make a product active you need have at least 1 variant"))
+				app.httpErrRes.BadRequestResponse(w, r, errors.New("to make a product active you need have at least 1 variant"))
 				return
 			}
 		}
 		updateInput.Status = &status
 	default:
 		v.AddError("status", "must be a valid status")
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 
 	}
@@ -201,9 +201,9 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+			app.httpErrRes.NotFoundResponse(w, r)
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 
@@ -211,14 +211,14 @@ func (app *application) changeProductStatusHandler(w http.ResponseWriter, r *htt
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
@@ -228,7 +228,7 @@ func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -236,18 +236,18 @@ func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.
 
 	if input.DefaultVariantID == nil {
 		v.AddError("default_variant_id", "must be provided")
-		app.failedValidationResponse(w, r, v.Errors)
+		app.httpErrRes.FailedValidationResponse(w, r, v.Errors)
 		return
 	}
 
 	variantID := *input.DefaultVariantID
 	exists, err := app.variants.IsVariantExists(variantID)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 	if !exists {
-		app.badRequestResponse(w, r, errors.New("variant does not exists"))
+		app.httpErrRes.BadRequestResponse(w, r, errors.New("variant does not exists"))
 		return
 	}
 
@@ -258,16 +258,16 @@ func (app *application) setDefaultVariantHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.badRequestResponse(w, r, errors.New("product does not exists"))
+			app.httpErrRes.BadRequestResponse(w, r, errors.New("product does not exists"))
 		default:
-			app.serverErrorResponse(w, r, err)
+			app.httpErrRes.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"product": product}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
@@ -278,31 +278,31 @@ func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Reque
 
 	products, err := app.products.GetAll(limit, offset)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"products": products}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (app *application) listProductVariantsHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		app.notFoundResponse(w, r)
+		app.httpErrRes.NotFoundResponse(w, r)
 		return
 	}
 
 	variants, err := app.variants.GetVariantsByProduct(id)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variants": variants}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.httpErrRes.ServerErrorResponse(w, r, err)
 	}
 }
