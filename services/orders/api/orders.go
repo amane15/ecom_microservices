@@ -4,11 +4,12 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/amane15/ecom_microservice/pkg/httpx"
 	"github.com/amane15/ecom_microservice/services/orders/internal/data"
 )
 
 func (app *application) getOrderHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := httpx.ReadIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -25,7 +26,7 @@ func (app *application) getOrderHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"order": order}, nil)
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"order": order}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

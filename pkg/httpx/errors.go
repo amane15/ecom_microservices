@@ -5,7 +5,7 @@ import (
 )
 
 func ErrorReponse(w http.ResponseWriter, r *http.Request, status int, message any) {
-	env := envelope{"error": message}
+	env := Envelope{"error": message}
 
 	err := WriteJSON(w, status, env, nil)
 	if err != nil {

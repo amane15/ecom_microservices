@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-type envelope map[string]any
+type Envelope map[string]any
 
-func WriteJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
+func WriteJSON(w http.ResponseWriter, status int, data Envelope, headers http.Header) error {
 	js, err := json.Marshal(data)
 	if err != nil {
 		return err
