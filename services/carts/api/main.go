@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -18,7 +19,7 @@ func main() {
 	godotenv.Load()
 
 	cfg := internal.Config{
-		Port:  4000,
+		Port:  os.Getenv("PORT"),
 		DbDSN: os.Getenv("DATABASE_URL"),
 	}
 
@@ -36,7 +37,9 @@ func main() {
 	app := internal.NewApplication(cfg, logger, db)
 	handler := http.NewHandler(app)
 
-	srv := platform.NewHTTPServer(":4003", handler.Routes())
+	addr := fmt.Sprintf(":%s", cfg.Port)
+	srv := platform.NewHTTPServer(addr, handler.Routes())
+	logger.Info("starting server on", "addr", addr)
 	err = srv.Start()
 	if err != nil {
 		logger.Error(err.Error())

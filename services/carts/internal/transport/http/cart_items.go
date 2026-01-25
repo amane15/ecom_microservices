@@ -1,6 +1,7 @@
 package http
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 
@@ -43,7 +44,7 @@ func (h *Handler) createCartItemHandler(w http.ResponseWriter, r *http.Request) 
 	var input struct {
 		ProductID *int64 `json:"product_id"`
 		VariantID *int64 `json:"variant_id"`
-		Quantity  *int   `json:"quantity"`
+		Quantity  *int32 `json:"quantity"`
 	}
 
 	err = httpx.ReadJSON(w, r, &input)
@@ -71,8 +72,8 @@ func (h *Handler) createCartItemHandler(w http.ResponseWriter, r *http.Request) 
 
 	item := &data.CartItem{
 		CartID:    id,
-		ProductID: *input.ProductID,
-		VariantID: *input.VariantID,
+		ProductID: sql.NullInt64{Int64: *input.ProductID, Valid: true},
+		VariantID: sql.NullInt64{Int64: *input.VariantID, Valid: true},
 		Quantity:  *input.Quantity,
 	}
 

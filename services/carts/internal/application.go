@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	DbDSN string
-	Port  int
+	Port  string
 }
 
 type Application struct {
