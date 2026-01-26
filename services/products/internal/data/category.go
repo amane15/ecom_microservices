@@ -11,35 +11,21 @@ import (
 	"github.com/lib/pq"
 )
 
-// id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-//
-// name VARCHAR(255) NOT NULL,
-// slug VARCHAR(128) NOT NULL UNIQUE,
-//
-// description TEXT,
-//
-// is_active BOOLEAN NOT NULL DEFAULT true,
-//
-// created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-// updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-// deleted_at TIMESTAMPTZ
-//
-
 type CategoryModel struct {
-	DB *sql.DB
+	queries *Queries
 }
 
-type Category struct {
-	ID          int64   `json:"id"`
-	Name        string  `json:"name"`
-	Slug        string  `json:"slug"`
-	Description *string `json:"description,omitempty"`
-	IsActive    bool    `json:"is_active"`
-
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-}
+// type Category struct {
+// 	ID          int64   `json:"id"`
+// 	Name        string  `json:"name"`
+// 	Slug        string  `json:"slug"`
+// 	Description *string `json:"description,omitempty"`
+// 	IsActive    bool    `json:"is_active"`
+//
+// 	CreatedAt time.Time  `json:"created_at"`
+// 	UpdatedAt time.Time  `json:"updated_at"`
+// 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+// }
 
 type CreateCategoryInput struct {
 	Name        string  `json:"name"`

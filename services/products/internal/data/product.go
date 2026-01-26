@@ -11,15 +11,15 @@ import (
 	"github.com/lib/pq"
 )
 
-type ProductStatus string
+// type ProductStatus string
+//
+// const (
+// 	ProductStatusDraft    ProductStatus = "draft"
+// 	ProductStatusActive   ProductStatus = "active"
+// 	ProductStatusArchived ProductStatus = "archived"
+// )
 
-const (
-	ProductStatusDraft    ProductStatus = "draft"
-	ProductStatusActive   ProductStatus = "active"
-	ProductStatusArchived ProductStatus = "archived"
-)
-
-type Product struct {
+type _Product struct {
 	ID               int64         `json:"id"`
 	Name             string        `json:"name"`
 	Slug             string        `json:"slug"`
@@ -62,40 +62,19 @@ type UpdateProductInput struct {
 }
 
 type ProductModel struct {
-	DB *sql.DB
+	DB      *sql.DB // For compatibility
+	queries *Queries
 }
 
-func (m ProductModel) Get(id int64) (*Product, error) {
+func (m ProductModel) Get(id int64) (*_Product, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
 
-	query := `
-	SELECT id, name, slug, description, short_description, meta_title,
-		meta_description, status, default_variant_id,
-		created_at, updated_at, deleted_at
-	FROM products
-	WHERE id = $1
-	`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	productRow := &productRow{}
-
-	err := m.DB.QueryRowContext(ctx, query, id).Scan(
-		&productRow.ID,
-		&productRow.Name,
-		&productRow.Slug,
-		&productRow.Description,
-		&productRow.ShortDescription,
-		&productRow.MetaTitle,
-		&productRow.MetaDescription,
-		&productRow.Status,
-		&productRow.DefaultVariantID,
-		&productRow.CreatedAt,
-		&productRow.UpdatedAt,
-		&productRow.DeletedAt,
-	)
+	productRow, err := m.queries.GetProduct(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -105,29 +84,24 @@ func (m ProductModel) Get(id int64) (*Product, error) {
 		}
 	}
 
-	product := mapProductRow(productRow)
+	product := mapProductRow(&productRow)
 	return product, nil
 }
 
 func (m ProductModel) Create(product *Product) error {
-	query := `INSERT INTO products(name, slug, description, short_description,
-				meta_title, meta_description, status, default_variant_id)
-	 	VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-	 	RETURNING id, created_at, updated_at`
-
-	args := []any{
-		product.Name, product.Slug, product.Description,
-		product.ShortDescription, product.MetaTitle,
-		product.MetaDescription, product.Status, product.DefaultVariantID,
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(
-		&product.ID,
-		&product.CreatedAt,
-		&product.UpdatedAt)
+	productRow, err := m.queries.InsertProduct(ctx, InsertProductParams{
+		Name:             product.Name,
+		Slug:             product.Slug,
+		Description:      product.Description,
+		ShortDescription: product.ShortDescription,
+		MetaTitle:        product.MetaTitle,
+		MetaDescription:  product.MetaDescription,
+		Status:           product.Status,
+		DefaultVariantID: product.DefaultVariantID,
+	})
 	if err != nil {
 		if pqError, ok := err.(*pq.Error); ok {
 			switch pqError.Code {
@@ -139,6 +113,10 @@ func (m ProductModel) Create(product *Product) error {
 		}
 		return err
 	}
+
+	product.ID = productRow.ID
+	product.CreatedAt = productRow.CreatedAt
+	product.UpdatedAt = productRow.UpdatedAt
 	return nil
 }
 
@@ -186,8 +164,8 @@ func (m ProductModel) Delete(id int) error {
 	return nil
 }
 
-func mapProductRow(pr *productRow) *Product {
-	product := &Product{
+func mapProductRow(pr *GetProductRow) *_Product {
+	product := &_Product{
 		ID:        pr.ID,
 		Name:      pr.Name,
 		Slug:      pr.Slug,
@@ -223,54 +201,37 @@ func mapProductRow(pr *productRow) *Product {
 	return product
 }
 
-func (m ProductModel) GetAll(limit, offset int) ([]*Product, error) {
-	query := `
-	SELECT id, name, slug, description, short_description, meta_title,
-		meta_description, status, default_variant_id,
-		created_at, updated_at, deleted_at
-	FROM products
-	WHERE status = 'active'
-	ORDER BY id 
-	LIMIT $1 OFFSET $2
-	`
-
+func (m ProductModel) GetAll(limit, offset int) ([]*_Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, limit, offset)
+	productRows, err := m.queries.ListProducts(ctx, ListProductsParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	products := []*Product{}
+	products := []*_Product{}
 
-	for rows.Next() {
-		var product Product
-
-		err := rows.Scan(
-			&product.ID,
-			&product.Name,
-			&product.Slug,
-			&product.Description,
-			&product.ShortDescription,
-			&product.MetaTitle,
-			&product.MetaDescription,
-			&product.Status,
-			&product.DefaultVariantID,
-			&product.CreatedAt,
-			&product.UpdatedAt,
-			&product.DeletedAt,
-		)
-		if err != nil {
-			return nil, err
+	for _, product := range productRows {
+		p := &_Product{
+			ID:               product.ID,
+			Name:             product.Name,
+			Slug:             product.Slug,
+			Description:      &product.Description.String,
+			ShortDescription: &product.ShortDescription.String,
+			MetaTitle:        &product.MetaTitle.String,
+			MetaDescription:  &product.MetaDescription.String,
+			Status:           product.Status,
+			DefaultVariantID: &product.DefaultVariantID.Int64,
+			CreatedAt:        product.CreatedAt,
+			UpdatedAt:        product.UpdatedAt,
+			DeletedAt:        &product.DeletedAt.Time,
 		}
 
-		products = append(products, &product)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
+		products = append(products, p)
 	}
 
 	return products, nil
@@ -309,7 +270,6 @@ func buildPatchQuery(id int64, input *UpdateProductInput) (string, []any, error)
 		args = append(args, *input.MetaDescription)
 		argPos++
 	}
-
 	if input.Status != nil {
 		setClauses = append(setClauses, fmt.Sprintf("status = $%d", argPos))
 		args = append(args, *input.Status)

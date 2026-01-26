@@ -40,32 +40,15 @@ type CreateVariantInput struct {
 }
 
 type ProductVariantModel struct {
-	DB *sql.DB
+	DB      *sql.DB
+	queries *Queries
 }
 
-func (m ProductVariantModel) Get(id int64) (*ProductVariant, error) {
-	query := `
-	SELECT id, product_id, slug, name, price, is_active,
-		created_at, updated_at, deleted_at
-	FROM products_variants
-	WHERE id = $1
-	`
+func (m ProductVariantModel) Get(id int64) (*ProductsVariant, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	variant := &ProductVariant{}
-	deletedAt := sql.NullTime{}
-	err := m.DB.QueryRowContext(ctx, query, id).Scan(
-		&variant.ID,
-		&variant.ProductID,
-		&variant.Slug,
-		&variant.Name,
-		&variant.Price,
-		&variant.IsActive,
-		&variant.CreatedAt,
-		&variant.UpdatedAt,
-		&deletedAt,
-	)
+	variant, err := m.queries.GetVariant(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -75,11 +58,7 @@ func (m ProductVariantModel) Get(id int64) (*ProductVariant, error) {
 		}
 	}
 
-	if deletedAt.Valid {
-		variant.DeletedAt = &deletedAt.Time
-	}
-
-	return variant, nil
+	return &variant, nil
 }
 
 func (m ProductVariantModel) Insert(variant *ProductVariant) error {
@@ -157,23 +136,12 @@ func (m ProductVariantModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 
-	query := `DELETE FROM products_variants WHERE id = $1`
-
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := m.DB.ExecContext(ctx, query, id)
+	err := m.queries.DeleteVariant(ctx, id)
 	if err != nil {
 		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil
-	}
-
-	if rowsAffected == 0 {
-		return ErrRecordNotFound
 	}
 
 	return nil

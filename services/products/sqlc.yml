@@ -1,0 +1,13 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    queries: "internal/data/queries.sql"
+    schema: "migrations/"
+    gen:
+      go:
+        package: "data"
+        out: "internal/data"
+        sql_package: "database/sql"
+        emit_json_tags: true
+        emit_interface: true
