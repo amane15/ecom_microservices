@@ -2,26 +2,16 @@ package data
 
 import (
 	"errors"
-
-	"github.com/lib/pq"
 )
 
 var (
-	ErrDuplicateSlug    = errors.New("slug already exists")
-	ErrDuplicateSku     = errors.New("sku already exists")
-	ErrRecordNotFound   = errors.New("record not found")
-	ErrNoFieldsToUpdate = errors.New("no fields to update")
+	ErrDuplicateSlug       = errors.New("slug already exists")
+	ErrRecordNotFound      = errors.New("record not found")
+	ErrNoFieldsToUpdate    = errors.New("no fields to update")
+	ErrTableNotFound       = errors.New("table not found")
+	ErrColumnNotFound      = errors.New("column not found")
+	ErrReferenceNotFound   = errors.New("referenced row not found")
+	ErrCheckViolation      = errors.New("check constraint failed")
+	ErrForeignKeyViolation = errors.New("row still in use")
+	ErrNotNullViolation    = errors.New("value cannot be null")
 )
-
-func handleUniqueViolationError(pqError *pq.Error) error {
-	switch pqError.Constraint {
-	case "products_sku_key":
-		return ErrDuplicateSku
-	case "products_slug_key":
-		return ErrDuplicateSlug
-	case "categories_slug_key":
-		return ErrDuplicateSlug
-	default:
-		return pqError
-	}
-}

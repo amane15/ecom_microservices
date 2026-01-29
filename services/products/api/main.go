@@ -23,25 +23,23 @@ func main() {
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	db, err := openDB(cfg.DbDSN)
+	dbpool, err := openDB(cfg.DbDSN)
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
-	defer db.Close()
+	defer dbpool.Close()
 
 	logger.Info("database connection pool established")
 
-	app := internal.NewApplication(cfg, logger)
-
-	productStore := store.NewProductStore(db)
-	variantStore := store.NewVariantStore(db)
-	categoryStore := store.NewCategoryStore(db)
+	productStore := store.NewProductStore(dbpool)
+	variantStore := store.NewVariantStore(dbpool)
+	categoryStore := store.NewCategoryStore(dbpool)
 
 	productService := service.NewProductService(productStore, variantStore)
 	categoryService := service.NewCategoryService(categoryStore)
 
-	handler := http.NewHandler(app, productService, categoryService)
+	handler := http.NewHandler(productService, categoryService, logger)
 
 	logger.Info("Starting server on address :4001")
 	srv := platform.NewHTTPServer(":4001", handler.Routes())

@@ -2,12 +2,14 @@ package store
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/amane15/ecom_microservice/internal/dbutils"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 	"github.com/amane15/ecom_microservice/services/products/internal/service"
 	"github.com/amane15/ecom_microservice/services/products/internal/store/sqlstore"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,7 +31,12 @@ func (cs *CategoryStore) Get(ctx context.Context, id int64) (*data.Category, err
 
 	row, err := cs.Q.GetCategory(ctx, id)
 	if err != nil {
-		return nil, err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, data.ErrRecordNotFound
+		default:
+			return nil, checkAndHandlePostgresErrors(err)
+		}
 	}
 
 	category := &data.Category{
@@ -61,7 +68,7 @@ func (cs *CategoryStore) Create(ctx context.Context, input *service.CreateCatego
 
 	row, err := cs.Q.InsertCategory(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, checkAndHandlePostgresErrors(err)
 	}
 
 	category := &data.Category{
@@ -90,7 +97,12 @@ func (cs *CategoryStore) Update(ctx context.Context, id int64, input *service.Up
 
 	row, err := cs.Q.UpdateCategory(ctx, params)
 	if err != nil {
-		return nil, err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, data.ErrRecordNotFound
+		default:
+			return nil, checkAndHandlePostgresErrors(err)
+		}
 	}
 
 	category := &data.Category{
@@ -112,7 +124,12 @@ func (cs *CategoryStore) Delete(ctx context.Context, id int64) error {
 
 	err := cs.Q.DeleteCategory(ctx, id)
 	if err != nil {
-		return err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return data.ErrRecordNotFound
+		default:
+			return checkAndHandlePostgresErrors(err)
+		}
 	}
 
 	return nil
@@ -127,7 +144,7 @@ func (cs *CategoryStore) List(ctx context.Context, limit, offset int32) ([]*data
 		Offset: offset,
 	})
 	if err != nil {
-		return nil, err
+		return nil, checkAndHandlePostgresErrors(err)
 	}
 
 	categories := []*data.Category{}

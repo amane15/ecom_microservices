@@ -2,12 +2,14 @@ package store
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/amane15/ecom_microservice/internal/dbutils"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 	"github.com/amane15/ecom_microservice/services/products/internal/service"
 	"github.com/amane15/ecom_microservice/services/products/internal/store/sqlstore"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,7 +31,7 @@ func (vs *VariantStore) Get(ctx context.Context, id int64) (*data.Variant, error
 
 	row, err := vs.Q.GetVariant(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, checkAndHandlePostgresErrors(err)
 	}
 
 	variant := &data.Variant{
@@ -64,7 +66,7 @@ func (vs *VariantStore) Create(ctx context.Context, input *service.CreateVariant
 
 	row, err := vs.Q.InsertVariant(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, checkAndHandlePostgresErrors(err)
 	}
 
 	variant := &data.Variant{
@@ -98,7 +100,7 @@ func (vs *VariantStore) Update(ctx context.Context, id int64, input *service.Upd
 
 	row, err := vs.Q.UpdateVariant(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, checkAndHandlePostgresErrors(err)
 	}
 
 	variant := &data.Variant{
@@ -121,7 +123,7 @@ func (vs *VariantStore) Delete(ctx context.Context, id int64) error {
 
 	err := vs.Q.DeleteVariant(ctx, id)
 	if err != nil {
-		return err
+		return checkAndHandlePostgresErrors(err)
 	}
 
 	return nil
@@ -133,7 +135,12 @@ func (vs *VariantStore) ListByProduct(ctx context.Context, productID int64) ([]*
 
 	rows, err := vs.Q.ListProductVariants(ctx, productID)
 	if err != nil {
-		return nil, err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, data.ErrRecordNotFound
+		default:
+			return nil, checkAndHandlePostgresErrors(err)
+		}
 	}
 
 	variants := []*data.Variant{}

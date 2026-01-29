@@ -2,12 +2,14 @@ package store
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/amane15/ecom_microservice/internal/dbutils"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 	"github.com/amane15/ecom_microservice/services/products/internal/service"
 	"github.com/amane15/ecom_microservice/services/products/internal/store/sqlstore"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,7 +31,12 @@ func (ps *ProductStore) Get(ctx context.Context, id int64) (*data.Product, error
 
 	row, err := ps.Q.GetProduct(ctx, id)
 	if err != nil {
-		return nil, err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, data.ErrRecordNotFound
+		default:
+			return nil, checkAndHandlePostgresErrors(err)
+		}
 	}
 
 	product := &data.Product{
@@ -63,7 +70,7 @@ func (ps *ProductStore) Create(ctx context.Context, input *service.CreateProduct
 		Status:           sqlstore.ProductStatus(*input.Status),
 	})
 	if err != nil {
-		return nil, err
+		return nil, checkAndHandlePostgresErrors(err)
 	}
 
 	product := &data.Product{
@@ -102,7 +109,12 @@ func (ps *ProductStore) Update(ctx context.Context, id int64, input *service.Upd
 
 	row, err := ps.Q.UpdateProduct(ctx, params)
 	if err != nil {
-		return nil, err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, data.ErrRecordNotFound
+		default:
+			return nil, checkAndHandlePostgresErrors(err)
+		}
 	}
 
 	product := &data.Product{
@@ -127,7 +139,7 @@ func (ps *ProductStore) List(ctx context.Context, limit, offset int32) ([]*data.
 
 	rows, err := ps.Q.ListProducts(ctx, sqlstore.ListProductsParams{Limit: limit, Offset: offset})
 	if err != nil {
-		return nil, err
+		return nil, checkAndHandlePostgresErrors(err)
 	}
 
 	products := []*data.Product{}
@@ -153,45 +165,18 @@ func (ps *ProductStore) List(ctx context.Context, limit, offset int32) ([]*data.
 	return products, nil
 }
 
-func (ps *ProductStore) ListByProduct(ctx context.Context, limit, offset int32) ([]*data.Product, error) {
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-
-	rows, err := ps.Q.ListProducts(ctx, sqlstore.ListProductsParams{Limit: limit, Offset: offset})
-	if err != nil {
-		return nil, err
-	}
-
-	products := []*data.Product{}
-
-	for _, p := range rows {
-		product := &data.Product{
-			ID:               p.ID,
-			Name:             p.Name,
-			Slug:             p.Slug,
-			Status:           data.ProductStatus(p.Status),
-			Description:      dbutils.StringToPtr(p.Description),
-			ShortDescription: dbutils.StringToPtr(p.ShortDescription),
-			MetaTitle:        dbutils.StringToPtr(p.MetaTitle),
-			MetaDescription:  dbutils.StringToPtr(p.MetaDescription),
-			DefaultVariantID: dbutils.Int8ToPtr(p.DefaultVariantID),
-			CreatedAt:        p.CreatedAt.Time,
-			UpdatedAt:        p.UpdatedAt.Time,
-		}
-
-		products = append(products, product)
-	}
-
-	return products, nil
-}
-
 func (ps *ProductStore) Delete(ctx context.Context, id int64) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	err := ps.Q.DeleteProduct(ctx, id)
 	if err != nil {
-		return err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return data.ErrRecordNotFound
+		default:
+			return checkAndHandlePostgresErrors(err)
+		}
 	}
 
 	return nil

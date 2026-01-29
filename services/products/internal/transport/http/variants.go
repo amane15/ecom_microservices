@@ -10,9 +10,10 @@ import (
 )
 
 func (h *Handler) getVariantHandler(w http.ResponseWriter, r *http.Request) {
+	h.logger.Debug("get variant request received")
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		h.httpErrRes.NotFoundResponse(w, r)
+		httpx.NotFoundResponse(w, r)
 		return
 	}
 
@@ -20,9 +21,10 @@ func (h *Handler) getVariantHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			h.httpErrRes.NotFoundResponse(w, r)
+			httpx.NotFoundResponse(w, r)
 		default:
-			h.httpErrRes.ServerErrorResponse(w, r, err)
+			h.logger.Error("error while fetching variant", "error", err, "id", id)
+			httpx.ServerErrorResponse(w, r, err)
 		}
 
 		return
@@ -30,14 +32,16 @@ func (h *Handler) getVariantHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
-		h.httpErrRes.ServerErrorResponse(w, r, err)
+		h.logger.Error("error writing a json", "error", err)
+		httpx.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (h *Handler) createVariantHandler(w http.ResponseWriter, r *http.Request) {
+	h.logger.Debug("craete variant request received")
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		h.httpErrRes.NotFoundResponse(w, r)
+		httpx.NotFoundResponse(w, r)
 		return
 	}
 
@@ -45,7 +49,7 @@ func (h *Handler) createVariantHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = httpx.ReadJSON(w, r, input)
 	if err != nil {
-		h.httpErrRes.BadRequestResponse(w, r, err)
+		httpx.BadRequestResponse(w, r, err)
 		return
 	}
 
@@ -53,23 +57,26 @@ func (h *Handler) createVariantHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
-			h.httpErrRes.BadRequestResponse(w, r, errors.New("variant with this slug already exists"))
+			httpx.BadRequestResponse(w, r, errors.New("variant with this slug already exists"))
 		default:
-			h.httpErrRes.ServerErrorResponse(w, r, err)
+			h.logger.Error("error while creating variant", "error", err)
+			httpx.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusCreated, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
-		h.httpErrRes.ServerErrorResponse(w, r, err)
+		h.logger.Error("error writing a json", "error", err)
+		httpx.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (h *Handler) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
+	h.logger.Debug("update variant request received")
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		h.httpErrRes.NotFoundResponse(w, r)
+		httpx.NotFoundResponse(w, r)
 		return
 	}
 
@@ -77,7 +84,7 @@ func (h *Handler) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = httpx.ReadJSON(w, r, input)
 	if err != nil {
-		h.httpErrRes.ServerErrorResponse(w, r, err)
+		httpx.ServerErrorResponse(w, r, err)
 		return
 	}
 
@@ -85,23 +92,26 @@ func (h *Handler) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			h.httpErrRes.NotFoundResponse(w, r)
+			httpx.NotFoundResponse(w, r)
 		default:
-			h.httpErrRes.ServerErrorResponse(w, r, err)
+			h.logger.Error("error while updating variant", "error", err)
+			httpx.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"variant": variant}, nil)
 	if err != nil {
-		h.httpErrRes.ServerErrorResponse(w, r, err)
+		h.logger.Error("error writing a json", "error", err)
+		httpx.ServerErrorResponse(w, r, err)
 	}
 }
 
 func (h *Handler) deleteVariantHandler(w http.ResponseWriter, r *http.Request) {
+	h.logger.Debug("delete variant request received")
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		h.httpErrRes.NotFoundResponse(w, r)
+		httpx.NotFoundResponse(w, r)
 		return
 	}
 
@@ -109,15 +119,17 @@ func (h *Handler) deleteVariantHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			h.httpErrRes.NotFoundResponse(w, r)
+			httpx.NotFoundResponse(w, r)
 		default:
-			h.httpErrRes.ServerErrorResponse(w, r, err)
+			h.logger.Error("error while deleting a variant", "error", err)
+			httpx.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusNoContent, nil, nil)
 	if err != nil {
-		h.httpErrRes.ServerErrorResponse(w, r, err)
+		h.logger.Error("error writing a json", "error", err)
+		httpx.ServerErrorResponse(w, r, err)
 	}
 }
