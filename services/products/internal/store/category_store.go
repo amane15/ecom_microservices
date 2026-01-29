@@ -36,10 +36,10 @@ func (cs *CategoryStore) Get(ctx context.Context, id int64) (*data.Category, err
 		ID:          row.ID,
 		Name:        row.Name,
 		Slug:        row.Slug,
-		Description: dbutils.MapNullString(row.Description),
+		Description: dbutils.StringToPtr(row.Description),
 		IsActive:    row.IsActive,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
+		CreatedAt:   row.CreatedAt.Time,
+		UpdatedAt:   row.UpdatedAt.Time,
 	}
 
 	return category, nil
@@ -52,7 +52,7 @@ func (cs *CategoryStore) Create(ctx context.Context, input *service.CreateCatego
 	params := sqlstore.InsertCategoryParams{
 		Name:        input.Name,
 		Slug:        input.Slug,
-		Description: dbutils.MapStringPtr(input.Description),
+		Description: dbutils.PtrToString(input.Description),
 	}
 
 	if input.IsActive != nil {
@@ -68,10 +68,10 @@ func (cs *CategoryStore) Create(ctx context.Context, input *service.CreateCatego
 		ID:          row.ID,
 		Name:        row.Name,
 		Slug:        row.Slug,
-		Description: dbutils.MapNullString(row.Description),
+		Description: dbutils.StringToPtr(row.Description),
 		IsActive:    row.IsActive,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
+		CreatedAt:   row.CreatedAt.Time,
+		UpdatedAt:   row.UpdatedAt.Time,
 	}
 
 	return category, nil
@@ -83,9 +83,9 @@ func (cs *CategoryStore) Update(ctx context.Context, id int64, input *service.Up
 
 	params := sqlstore.UpdateCategoryParams{
 		ID:          id,
-		Name:        dbutils.MapStringPtr(input.Name),
-		Description: dbutils.MapStringPtr(input.Description),
-		IsActive:    dbutils.MapBoolPtr(input.IsActive),
+		Name:        dbutils.PtrToString(input.Name),
+		Description: dbutils.PtrToString(input.Description),
+		IsActive:    dbutils.PtrToBool(input.IsActive),
 	}
 
 	row, err := cs.Q.UpdateCategory(ctx, params)
@@ -97,10 +97,10 @@ func (cs *CategoryStore) Update(ctx context.Context, id int64, input *service.Up
 		ID:          row.ID,
 		Name:        row.Name,
 		Slug:        row.Slug,
-		Description: dbutils.MapNullString(row.Description),
+		Description: dbutils.StringToPtr(row.Description),
 		IsActive:    row.IsActive,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
+		CreatedAt:   row.CreatedAt.Time,
+		UpdatedAt:   row.UpdatedAt.Time,
 	}
 
 	return category, nil
@@ -137,10 +137,10 @@ func (cs *CategoryStore) List(ctx context.Context, limit, offset int32) ([]*data
 			ID:          row.ID,
 			Name:        row.Name,
 			Slug:        row.Slug,
-			Description: dbutils.MapNullString(row.Description),
+			Description: dbutils.StringToPtr(row.Description),
 			IsActive:    row.IsActive,
-			CreatedAt:   row.CreatedAt,
-			UpdatedAt:   row.UpdatedAt,
+			CreatedAt:   row.CreatedAt.Time,
+			UpdatedAt:   row.UpdatedAt.Time,
 		}
 
 		categories = append(categories, category)

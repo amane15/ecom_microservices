@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/amane15/ecom_microservice/internal/dbutils"
@@ -40,9 +39,9 @@ func (vs *VariantStore) Get(ctx context.Context, id int64) (*data.Variant, error
 		Name:      row.Name,
 		Price:     row.Price,
 		IsActive:  row.IsActive,
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: row.UpdatedAt,
-		DeletedAt: dbutils.MapNullTime(row.DeletedAt),
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
+		DeletedAt: dbutils.TimeToPtr(row.DeletedAt),
 	}
 
 	return variant, nil
@@ -75,8 +74,8 @@ func (vs *VariantStore) Create(ctx context.Context, input *service.CreateVariant
 		Slug:      row.Slug,
 		Price:     row.Price,
 		IsActive:  row.IsActive,
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: row.UpdatedAt,
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
 	}
 
 	return variant, nil
@@ -89,12 +88,9 @@ func (vs *VariantStore) Update(ctx context.Context, id int64, input *service.Upd
 
 	params := sqlstore.UpdateVariantParams{
 		ID:       id,
-		Name:     dbutils.MapStringPtr(input.Name),
-		IsActive: dbutils.MapBoolPtr(input.IsActive),
-	}
-
-	if input.Price != nil {
-		params.Price = sql.NullString{String: input.Price.String(), Valid: true}
+		Name:     dbutils.PtrToString(input.Name),
+		IsActive: dbutils.PtrToBool(input.IsActive),
+		Price:    dbutils.DecimalPtrToNumeric(input.Price),
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
@@ -112,8 +108,8 @@ func (vs *VariantStore) Update(ctx context.Context, id int64, input *service.Upd
 		Slug:      row.Slug,
 		Price:     row.Price,
 		IsActive:  row.IsActive,
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: row.UpdatedAt,
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
 	}
 
 	return variant, nil
@@ -149,9 +145,9 @@ func (vs *VariantStore) ListByProduct(ctx context.Context, productID int64) ([]*
 			Name:      row.Name,
 			Price:     row.Price,
 			IsActive:  row.IsActive,
-			CreatedAt: row.CreatedAt,
-			UpdatedAt: row.UpdatedAt,
-			DeletedAt: dbutils.MapNullTime(row.DeletedAt),
+			CreatedAt: row.CreatedAt.Time,
+			UpdatedAt: row.UpdatedAt.Time,
+			DeletedAt: dbutils.TimeToPtr(row.DeletedAt),
 		}
 
 		variants = append(variants, variant)

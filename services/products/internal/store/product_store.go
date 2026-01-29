@@ -37,14 +37,14 @@ func (ps *ProductStore) Get(ctx context.Context, id int64) (*data.Product, error
 		Name:             row.Name,
 		Slug:             row.Slug,
 		Status:           data.ProductStatus(row.Status),
-		Description:      dbutils.MapNullString(row.Description),
-		ShortDescription: dbutils.MapNullString(row.ShortDescription),
-		MetaTitle:        dbutils.MapNullString(row.MetaTitle),
-		MetaDescription:  dbutils.MapNullString(row.MetaDescription),
-		DefaultVariantID: dbutils.MapNullInt64(row.DefaultVariantID),
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
-		DeletedAt:        dbutils.MapNullTime(row.DeletedAt),
+		Description:      dbutils.StringToPtr(row.Description),
+		ShortDescription: dbutils.StringToPtr(row.ShortDescription),
+		MetaTitle:        dbutils.StringToPtr(row.MetaTitle),
+		MetaDescription:  dbutils.StringToPtr(row.MetaDescription),
+		DefaultVariantID: dbutils.Int8ToPtr(row.DefaultVariantID),
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
+		DeletedAt:        dbutils.TimeToPtr(row.DeletedAt),
 	}
 
 	return product, nil
@@ -56,10 +56,10 @@ func (ps *ProductStore) Create(ctx context.Context, input *service.CreateProduct
 	row, err := ps.Q.InsertProduct(ctx, sqlstore.InsertProductParams{
 		Name:             input.Name,
 		Slug:             input.Slug,
-		Description:      dbutils.MapStringPtr(input.Description),
-		ShortDescription: dbutils.MapStringPtr(input.ShortDescription),
-		MetaTitle:        dbutils.MapStringPtr(input.MetaDescription),
-		MetaDescription:  dbutils.MapStringPtr(input.MetaDescription),
+		Description:      dbutils.PtrToString(input.Description),
+		ShortDescription: dbutils.PtrToString(input.ShortDescription),
+		MetaTitle:        dbutils.PtrToString(input.MetaDescription),
+		MetaDescription:  dbutils.PtrToString(input.MetaDescription),
 		Status:           sqlstore.ProductStatus(*input.Status),
 	})
 	if err != nil {
@@ -71,13 +71,13 @@ func (ps *ProductStore) Create(ctx context.Context, input *service.CreateProduct
 		Name:             row.Name,
 		Slug:             row.Slug,
 		Status:           data.ProductStatus(row.Status),
-		Description:      dbutils.MapNullString(row.Description),
-		ShortDescription: dbutils.MapNullString(row.ShortDescription),
-		MetaTitle:        dbutils.MapNullString(row.MetaTitle),
-		MetaDescription:  dbutils.MapNullString(row.MetaDescription),
-		DefaultVariantID: dbutils.MapNullInt64(row.DefaultVariantID),
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
+		Description:      dbutils.StringToPtr(row.Description),
+		ShortDescription: dbutils.StringToPtr(row.ShortDescription),
+		MetaTitle:        dbutils.StringToPtr(row.MetaTitle),
+		MetaDescription:  dbutils.StringToPtr(row.MetaDescription),
+		DefaultVariantID: dbutils.Int8ToPtr(row.DefaultVariantID),
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
 	}
 	return product, nil
 }
@@ -88,12 +88,12 @@ func (ps *ProductStore) Update(ctx context.Context, id int64, input *service.Upd
 
 	params := sqlstore.UpdateProductParams{
 		ID:               id,
-		Name:             dbutils.MapStringPtr(input.Name),
-		Description:      dbutils.MapStringPtr(input.Description),
-		ShortDescription: dbutils.MapStringPtr(input.ShortDescription),
-		MetaTitle:        dbutils.MapStringPtr(input.MetaTitle),
-		MetaDescription:  dbutils.MapStringPtr(input.MetaDescription),
-		DefaultVariantID: dbutils.MapInt64Ptr(input.DefaultVariantID),
+		Name:             dbutils.PtrToString(input.Name),
+		Description:      dbutils.PtrToString(input.Description),
+		ShortDescription: dbutils.PtrToString(input.ShortDescription),
+		MetaTitle:        dbutils.PtrToString(input.MetaTitle),
+		MetaDescription:  dbutils.PtrToString(input.MetaDescription),
+		DefaultVariantID: dbutils.PtrToInt8(input.DefaultVariantID),
 	}
 
 	if input.Status != nil {
@@ -110,13 +110,13 @@ func (ps *ProductStore) Update(ctx context.Context, id int64, input *service.Upd
 		Name:             row.Name,
 		Slug:             row.Slug,
 		Status:           data.ProductStatus(row.Status),
-		Description:      dbutils.MapNullString(row.Description),
-		ShortDescription: dbutils.MapNullString(row.ShortDescription),
-		MetaTitle:        dbutils.MapNullString(row.MetaTitle),
-		MetaDescription:  dbutils.MapNullString(row.MetaDescription),
-		DefaultVariantID: dbutils.MapNullInt64(row.DefaultVariantID),
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
+		Description:      dbutils.StringToPtr(row.Description),
+		ShortDescription: dbutils.StringToPtr(row.ShortDescription),
+		MetaTitle:        dbutils.StringToPtr(row.MetaTitle),
+		MetaDescription:  dbutils.StringToPtr(row.MetaDescription),
+		DefaultVariantID: dbutils.Int8ToPtr(row.DefaultVariantID),
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
 	}
 	return product, nil
 }
@@ -136,15 +136,15 @@ func (ps *ProductStore) List(ctx context.Context, limit, offset int32) ([]*data.
 			ID:               row.ID,
 			Name:             row.Name,
 			Slug:             row.Slug,
-			Description:      dbutils.MapNullString(row.Description),
-			ShortDescription: dbutils.MapNullString(row.ShortDescription),
-			MetaTitle:        dbutils.MapNullString(row.MetaTitle),
-			MetaDescription:  dbutils.MapNullString(row.MetaDescription),
+			Description:      dbutils.StringToPtr(row.Description),
+			ShortDescription: dbutils.StringToPtr(row.ShortDescription),
+			MetaTitle:        dbutils.StringToPtr(row.MetaTitle),
+			MetaDescription:  dbutils.StringToPtr(row.MetaDescription),
 			Status:           data.ProductStatus(row.Status),
-			DefaultVariantID: dbutils.MapNullInt64(row.DefaultVariantID),
-			CreatedAt:        row.CreatedAt,
-			UpdatedAt:        row.UpdatedAt,
-			DeletedAt:        dbutils.MapNullTime(row.DeletedAt),
+			DefaultVariantID: dbutils.Int8ToPtr(row.DefaultVariantID),
+			CreatedAt:        row.CreatedAt.Time,
+			UpdatedAt:        row.UpdatedAt.Time,
+			DeletedAt:        dbutils.TimeToPtr(row.DeletedAt),
 		}
 
 		products = append(products, product)
@@ -170,13 +170,13 @@ func (ps *ProductStore) ListByProduct(ctx context.Context, limit, offset int32) 
 			Name:             p.Name,
 			Slug:             p.Slug,
 			Status:           data.ProductStatus(p.Status),
-			Description:      dbutils.MapNullString(p.Description),
-			ShortDescription: dbutils.MapNullString(p.ShortDescription),
-			MetaTitle:        dbutils.MapNullString(p.MetaTitle),
-			MetaDescription:  dbutils.MapNullString(p.MetaDescription),
-			DefaultVariantID: dbutils.MapNullInt64(p.DefaultVariantID),
-			CreatedAt:        p.CreatedAt,
-			UpdatedAt:        p.UpdatedAt,
+			Description:      dbutils.StringToPtr(p.Description),
+			ShortDescription: dbutils.StringToPtr(p.ShortDescription),
+			MetaTitle:        dbutils.StringToPtr(p.MetaTitle),
+			MetaDescription:  dbutils.StringToPtr(p.MetaDescription),
+			DefaultVariantID: dbutils.Int8ToPtr(p.DefaultVariantID),
+			CreatedAt:        p.CreatedAt.Time,
+			UpdatedAt:        p.UpdatedAt.Time,
 		}
 
 		products = append(products, product)
