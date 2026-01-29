@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/amane15/ecom_microservice/pkg/httpx"
-	"github.com/amane15/ecom_microservice/pkg/validator"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
+	"github.com/amane15/ecom_microservice/services/products/internal/service"
 )
 
 func (h *Handler) getVariantHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +16,7 @@ func (h *Handler) getVariantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	variant, err := h.app.Models.Variants.Get(id)
+	variant, err := h.productService.GetVariant(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -35,33 +35,21 @@ func (h *Handler) getVariantHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) createVariantHandler(w http.ResponseWriter, r *http.Request) {
-	input := &data.CreateVariantInput{}
+	id, err := httpx.ReadIDParam(r)
+	if err != nil {
+		h.httpErrRes.NotFoundResponse(w, r)
+		return
+	}
 
-	err := httpx.ReadJSON(w, r, input)
+	input := &service.CreateVariantInput{}
+
+	err = httpx.ReadJSON(w, r, input)
 	if err != nil {
 		h.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
-	variant := &data.ProductVariant{
-		ProductID: input.ProductID,
-		Slug:      input.Slug,
-		Name:      input.Name,
-		Price:     input.Price,
-	}
-
-	if input.IsActive != nil {
-		variant.IsActive = *input.IsActive
-	}
-
-	v := validator.New()
-
-	if data.ValidateVariant(v, variant); !v.Valid() {
-		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	err = h.app.Models.Variants.Insert(variant)
+	variant, err := h.productService.CreateVariant(r.Context(), id, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
@@ -85,7 +73,7 @@ func (h *Handler) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := &data.UpdateVariantInput{}
+	input := &service.UpdateVariantInput{}
 
 	err = httpx.ReadJSON(w, r, input)
 	if err != nil {
@@ -93,19 +81,7 @@ func (h *Handler) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if input.Name == nil && input.IsActive == nil && input.Price == nil {
-		h.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
-		return
-	}
-
-	v := validator.New()
-
-	if data.ValidateUpdateVariantInput(v, input); !v.Valid() {
-		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	variant, err := h.app.Models.Variants.Update(id, input)
+	variant, err := h.productService.UpdateVariant(r.Context(), id, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -129,7 +105,7 @@ func (h *Handler) deleteVariantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.app.Models.Variants.Delete(id)
+	err = h.productService.DeleteVariant(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):

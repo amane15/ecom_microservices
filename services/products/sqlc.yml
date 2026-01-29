@@ -2,12 +2,15 @@ version: "2"
 
 sql:
   - engine: "postgresql"
-    queries: "internal/data/queries.sql"
+    queries: "internal/store/sqlstore/queries.sql"
     schema: "migrations/"
     gen:
       go:
-        package: "data"
-        out: "internal/data"
+        package: "sqlstore"
+        out: "internal/store/sqlstore"
         sql_package: "database/sql"
-        emit_json_tags: true
-        emit_interface: true
+        overrides:
+          - db_type: "pg_catalog.numeric"
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "Decimal"

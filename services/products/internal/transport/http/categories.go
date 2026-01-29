@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/amane15/ecom_microservice/pkg/httpx"
-	"github.com/amane15/ecom_microservice/pkg/validator"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
+	"github.com/amane15/ecom_microservice/services/products/internal/service"
 )
 
 func (h *Handler) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +16,7 @@ func (h *Handler) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := h.app.Models.Categories.Get(id)
+	category, err := h.categoryService.GetCategory(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -34,7 +34,7 @@ func (h *Handler) getCategoryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	input := data.CreateCategoryInput{}
+	input := &service.CreateCategoryInput{}
 
 	err := httpx.ReadJSON(w, r, &input)
 	if err != nil {
@@ -42,29 +42,7 @@ func (h *Handler) createCategoryHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	category := &data.Category{
-		Name: input.Name,
-		Slug: input.Slug,
-	}
-
-	if input.IsActive == nil {
-		category.IsActive = false
-	} else {
-		category.IsActive = *input.IsActive
-	}
-
-	if input.Description != nil {
-		category.Description = input.Description
-	}
-
-	v := validator.New()
-
-	if data.ValidateCategory(v, category); !v.Valid() {
-		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	err = h.app.Models.Categories.Insert(category)
+	category, err := h.categoryService.CreateCategory(r.Context(), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
@@ -89,26 +67,14 @@ func (h *Handler) updateCategoryHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	input := &data.UpdateCategoryInput{}
+	input := &service.UpdateCategoryInput{}
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
 		h.httpErrRes.BadRequestResponse(w, r, err)
 		return
 	}
 
-	if input.Name == nil && input.IsActive == nil && input.Description == nil {
-		h.httpErrRes.BadRequestResponse(w, r, errors.New("at least one field must be provided"))
-		return
-	}
-
-	v := validator.New()
-
-	if data.ValidateCategoryUpdate(v, input); !v.Valid() {
-		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	category, err := h.app.Models.Categories.Update(id, input)
+	category, err := h.categoryService.UpdateCategory(r.Context(), id, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrNoFieldsToUpdate):
@@ -135,7 +101,14 @@ func (h *Handler) markActiveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := &data.UpdateCategoryInput{}
+	var input struct {
+		IsActive *bool `json:"is_active"`
+	}
+
+	if input.IsActive == nil {
+		h.httpErrRes.BadRequestResponse(w, r, errors.New("is_active must be provided"))
+		return
+	}
 
 	err = httpx.ReadJSON(w, r, &input)
 	if err != nil {
@@ -143,15 +116,7 @@ func (h *Handler) markActiveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v := validator.New()
-
-	if input.IsActive == nil {
-		v.AddError("is_active", "must be provided")
-		h.httpErrRes.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	category, err := h.app.Models.Categories.Update(id, input)
+	category, err := h.categoryService.UpdateCategory(r.Context(), id, &service.UpdateCategoryInput{IsActive: input.IsActive})
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -173,7 +138,7 @@ func (h *Handler) listCategoriesHandler(w http.ResponseWriter, r *http.Request) 
 	limit := httpx.ReadInt(queryParams, "limit", 10)
 	offset := httpx.ReadInt(queryParams, "offset", 0)
 
-	categories, err := h.app.Models.Categories.GetAll(limit, offset)
+	categories, err := h.categoryService.ListCategories(r.Context(), int32(limit), int32(offset))
 	if err != nil {
 		h.httpErrRes.ServerErrorResponse(w, r, err)
 		return

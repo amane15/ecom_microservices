@@ -1,10 +1,7 @@
 package internal
 
 import (
-	"database/sql"
 	"log/slog"
-
-	"github.com/amane15/ecom_microservice/services/products/internal/data"
 )
 
 type Config struct {
@@ -15,13 +12,11 @@ type Config struct {
 type Application struct {
 	Config
 	Logger *slog.Logger
-	Models data.Models
 }
 
-func NewApplication(cfg Config, logger *slog.Logger, db *sql.DB) *Application {
+func NewApplication(cfg Config, logger *slog.Logger) *Application {
 	return &Application{
 		Logger: logger,
-		Models: data.NewModels(db),
 		Config: cfg,
 	}
 }
