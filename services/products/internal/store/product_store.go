@@ -2,24 +2,24 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/amane15/ecom_microservice/internal/dbutils"
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 	"github.com/amane15/ecom_microservice/services/products/internal/service"
 	"github.com/amane15/ecom_microservice/services/products/internal/store/sqlstore"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ProductStore struct {
-	DB *sql.DB
-	Q  *sqlstore.Queries
+	DBPool *pgxpool.Pool
+	Q      *sqlstore.Queries
 }
 
-func NewProductStore(db *sql.DB) *ProductStore {
+func NewProductStore(dbpool *pgxpool.Pool) *ProductStore {
 	return &ProductStore{
-		DB: db,
-		Q:  sqlstore.New(db),
+		DBPool: dbpool,
+		Q:      sqlstore.New(dbpool),
 	}
 }
 

@@ -8,7 +8,7 @@ sql:
       go:
         package: "sqlstore"
         out: "internal/store/sqlstore"
-        sql_package: "database/sql"
+        sql_package: "pgx/v5"
         overrides:
           - db_type: "pg_catalog.numeric"
             go_type:

@@ -7,9 +7,8 @@ package sqlstore
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -19,7 +18,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteCategory(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteCategory, id)
+	_, err := q.db.Exec(ctx, deleteCategory, id)
 	return err
 }
 
@@ -29,7 +28,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteProduct, id)
+	_, err := q.db.Exec(ctx, deleteProduct, id)
 	return err
 }
 
@@ -39,7 +38,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteVariant(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteVariant, id)
+	_, err := q.db.Exec(ctx, deleteVariant, id)
 	return err
 }
 
@@ -60,7 +59,7 @@ WHERE
 `
 
 func (q *Queries) GetCategory(ctx context.Context, id int64) (Category, error) {
-	row := q.db.QueryRowContext(ctx, getCategory, id)
+	row := q.db.QueryRow(ctx, getCategory, id)
 	var i Category
 	err := row.Scan(
 		&i.ID,
@@ -99,19 +98,19 @@ type GetProductRow struct {
 	ID               int64
 	Name             string
 	Slug             string
-	Description      sql.NullString
-	ShortDescription sql.NullString
-	MetaTitle        sql.NullString
-	MetaDescription  sql.NullString
+	Description      pgtype.Text
+	ShortDescription pgtype.Text
+	MetaTitle        pgtype.Text
+	MetaDescription  pgtype.Text
 	Status           ProductStatus
-	DefaultVariantID sql.NullInt64
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	DeletedAt        sql.NullTime
+	DefaultVariantID pgtype.Int8
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	DeletedAt        pgtype.Timestamptz
 }
 
 func (q *Queries) GetProduct(ctx context.Context, id int64) (GetProductRow, error) {
-	row := q.db.QueryRowContext(ctx, getProduct, id)
+	row := q.db.QueryRow(ctx, getProduct, id)
 	var i GetProductRow
 	err := row.Scan(
 		&i.ID,
@@ -148,7 +147,7 @@ WHERE
 `
 
 func (q *Queries) GetVariant(ctx context.Context, id int64) (ProductsVariant, error) {
-	row := q.db.QueryRowContext(ctx, getVariant, id)
+	row := q.db.QueryRow(ctx, getVariant, id)
 	var i ProductsVariant
 	err := row.Scan(
 		&i.ID,
@@ -174,7 +173,7 @@ WHERE
 `
 
 func (q *Queries) GetVariantByProduct(ctx context.Context, productID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getVariantByProduct, productID)
+	row := q.db.QueryRow(ctx, getVariantByProduct, productID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -190,7 +189,7 @@ RETURNING
 type InsertCategoryParams struct {
 	Name        string
 	Slug        string
-	Description sql.NullString
+	Description pgtype.Text
 	IsActive    bool
 }
 
@@ -198,14 +197,14 @@ type InsertCategoryRow struct {
 	ID          int64
 	Name        string
 	Slug        string
-	Description sql.NullString
+	Description pgtype.Text
 	IsActive    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
 }
 
 func (q *Queries) InsertCategory(ctx context.Context, arg InsertCategoryParams) (InsertCategoryRow, error) {
-	row := q.db.QueryRowContext(ctx, insertCategory,
+	row := q.db.QueryRow(ctx, insertCategory,
 		arg.Name,
 		arg.Slug,
 		arg.Description,
@@ -234,10 +233,10 @@ RETURNING
 type InsertProductParams struct {
 	Name             string
 	Slug             string
-	Description      sql.NullString
-	ShortDescription sql.NullString
-	MetaTitle        sql.NullString
-	MetaDescription  sql.NullString
+	Description      pgtype.Text
+	ShortDescription pgtype.Text
+	MetaTitle        pgtype.Text
+	MetaDescription  pgtype.Text
 	Status           ProductStatus
 }
 
@@ -245,18 +244,18 @@ type InsertProductRow struct {
 	ID               int64
 	Name             string
 	Slug             string
-	Description      sql.NullString
-	ShortDescription sql.NullString
-	MetaTitle        sql.NullString
-	MetaDescription  sql.NullString
+	Description      pgtype.Text
+	ShortDescription pgtype.Text
+	MetaTitle        pgtype.Text
+	MetaDescription  pgtype.Text
 	Status           ProductStatus
-	DefaultVariantID sql.NullInt64
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	DefaultVariantID pgtype.Int8
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 }
 
 func (q *Queries) InsertProduct(ctx context.Context, arg InsertProductParams) (InsertProductRow, error) {
-	row := q.db.QueryRowContext(ctx, insertProduct,
+	row := q.db.QueryRow(ctx, insertProduct,
 		arg.Name,
 		arg.Slug,
 		arg.Description,
@@ -298,7 +297,7 @@ type InsertVariantParams struct {
 }
 
 func (q *Queries) InsertVariant(ctx context.Context, arg InsertVariantParams) (ProductsVariant, error) {
-	row := q.db.QueryRowContext(ctx, insertVariant,
+	row := q.db.QueryRow(ctx, insertVariant,
 		arg.ProductID,
 		arg.Slug,
 		arg.Name,
@@ -345,7 +344,7 @@ type ListCategoriesParams struct {
 }
 
 func (q *Queries) ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error) {
-	rows, err := q.db.QueryContext(ctx, listCategories, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listCategories, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -366,9 +365,6 @@ func (q *Queries) ListCategories(ctx context.Context, arg ListCategoriesParams) 
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -394,7 +390,7 @@ WHERE
 `
 
 func (q *Queries) ListProductVariants(ctx context.Context, productID int64) ([]ProductsVariant, error) {
-	rows, err := q.db.QueryContext(ctx, listProductVariants, productID)
+	rows, err := q.db.Query(ctx, listProductVariants, productID)
 	if err != nil {
 		return nil, err
 	}
@@ -416,9 +412,6 @@ func (q *Queries) ListProductVariants(ctx context.Context, productID int64) ([]P
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -458,19 +451,19 @@ type ListProductsRow struct {
 	ID               int64
 	Name             string
 	Slug             string
-	Description      sql.NullString
-	ShortDescription sql.NullString
-	MetaTitle        sql.NullString
-	MetaDescription  sql.NullString
+	Description      pgtype.Text
+	ShortDescription pgtype.Text
+	MetaTitle        pgtype.Text
+	MetaDescription  pgtype.Text
 	Status           ProductStatus
-	DefaultVariantID sql.NullInt64
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	DeletedAt        sql.NullTime
+	DefaultVariantID pgtype.Int8
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	DeletedAt        pgtype.Timestamptz
 }
 
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listProducts, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listProducts, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -495,9 +488,6 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -527,13 +517,13 @@ RETURNING
 
 type UpdateCategoryParams struct {
 	ID          int64
-	Name        sql.NullString
-	Description sql.NullString
-	IsActive    sql.NullBool
+	Name        pgtype.Text
+	Description pgtype.Text
+	IsActive    pgtype.Bool
 }
 
 func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
-	row := q.db.QueryRowContext(ctx, updateCategory,
+	row := q.db.QueryRow(ctx, updateCategory,
 		arg.ID,
 		arg.Name,
 		arg.Description,
@@ -583,31 +573,31 @@ RETURNING
 
 type UpdateProductParams struct {
 	ID               int64
-	Name             sql.NullString
-	Description      sql.NullString
-	ShortDescription sql.NullString
-	MetaTitle        sql.NullString
-	MetaDescription  sql.NullString
+	Name             pgtype.Text
+	Description      pgtype.Text
+	ShortDescription pgtype.Text
+	MetaTitle        pgtype.Text
+	MetaDescription  pgtype.Text
 	Status           NullProductStatus
-	DefaultVariantID sql.NullInt64
+	DefaultVariantID pgtype.Int8
 }
 
 type UpdateProductRow struct {
 	ID               int64
 	Name             string
 	Slug             string
-	Description      sql.NullString
-	ShortDescription sql.NullString
-	MetaTitle        sql.NullString
-	MetaDescription  sql.NullString
+	Description      pgtype.Text
+	ShortDescription pgtype.Text
+	MetaTitle        pgtype.Text
+	MetaDescription  pgtype.Text
 	Status           ProductStatus
-	DefaultVariantID sql.NullInt64
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	DefaultVariantID pgtype.Int8
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (UpdateProductRow, error) {
-	row := q.db.QueryRowContext(ctx, updateProduct,
+	row := q.db.QueryRow(ctx, updateProduct,
 		arg.ID,
 		arg.Name,
 		arg.Description,
@@ -657,13 +647,13 @@ RETURNING
 
 type UpdateVariantParams struct {
 	ID       int64
-	Name     sql.NullString
-	Price    sql.NullString
-	IsActive sql.NullBool
+	Name     pgtype.Text
+	Price    pgtype.Numeric
+	IsActive pgtype.Bool
 }
 
 func (q *Queries) UpdateVariant(ctx context.Context, arg UpdateVariantParams) (ProductsVariant, error) {
-	row := q.db.QueryRowContext(ctx, updateVariant,
+	row := q.db.QueryRow(ctx, updateVariant,
 		arg.ID,
 		arg.Name,
 		arg.Price,

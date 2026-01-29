@@ -5,11 +5,10 @@
 package sqlstore
 
 import (
-	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -60,32 +59,32 @@ type Category struct {
 	ID          int64
 	Name        string
 	Slug        string
-	Description sql.NullString
+	Description pgtype.Text
 	IsActive    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   sql.NullTime
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+	DeletedAt   pgtype.Timestamptz
 }
 
 type Product struct {
 	ID               int64
 	Name             string
 	Slug             string
-	Description      sql.NullString
-	ShortDescription sql.NullString
-	MetaTitle        sql.NullString
-	MetaDescription  sql.NullString
-	DefaultVariantID sql.NullInt64
+	Description      pgtype.Text
+	ShortDescription pgtype.Text
+	MetaTitle        pgtype.Text
+	MetaDescription  pgtype.Text
+	DefaultVariantID pgtype.Int8
 	Status           ProductStatus
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	DeletedAt        sql.NullTime
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	DeletedAt        pgtype.Timestamptz
 }
 
 type ProductsCategory struct {
 	ProductID  int64
 	CategoryID int64
-	CreatedAt  time.Time
+	CreatedAt  pgtype.Timestamptz
 }
 
 type ProductsVariant struct {
@@ -95,7 +94,7 @@ type ProductsVariant struct {
 	Name      string
 	Price     decimal.Decimal
 	IsActive  bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt sql.NullTime
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+	DeletedAt pgtype.Timestamptz
 }

@@ -9,17 +9,18 @@ import (
 	"github.com/amane15/ecom_microservice/services/products/internal/data"
 	"github.com/amane15/ecom_microservice/services/products/internal/service"
 	"github.com/amane15/ecom_microservice/services/products/internal/store/sqlstore"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type VariantStore struct {
-	DB *sql.DB
-	Q  *sqlstore.Queries
+	DBPool *pgxpool.Pool
+	Q      *sqlstore.Queries
 }
 
-func NewVariantStore(db *sql.DB) *VariantStore {
+func NewVariantStore(dbpool *pgxpool.Pool) *VariantStore {
 	return &VariantStore{
-		DB: db,
-		Q:  sqlstore.New(db),
+		DBPool: dbpool,
+		Q:      sqlstore.New(dbpool),
 	}
 }
 
