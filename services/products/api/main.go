@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/amane15/ecom_microservice/internal/platform"
-	"github.com/amane15/ecom_microservice/services/products/internal"
 	"github.com/amane15/ecom_microservice/services/products/internal/service"
 	"github.com/amane15/ecom_microservice/services/products/internal/store"
 	"github.com/amane15/ecom_microservice/services/products/internal/transport/http"
@@ -14,16 +13,21 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type config struct {
+	port int
+	dsn  string
+}
+
 func main() {
 	godotenv.Load()
-	cfg := internal.Config{
-		DbDSN: os.Getenv("DATABASE_URL"),
-		Port:  4000,
+	cfg := config{
+		dsn:  os.Getenv("DATABASE_URL"),
+		port: 4000,
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	dbpool, err := openDB(cfg.DbDSN)
+	dbpool, err := openDB(cfg.dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		return
