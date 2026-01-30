@@ -2,29 +2,33 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/amane15/ecom_microservice/internal/platform"
-	"github.com/amane15/ecom_microservice/services/users/internal"
 	"github.com/amane15/ecom_microservice/services/users/internal/platform/http"
+	"github.com/amane15/ecom_microservice/services/users/internal/service"
+	"github.com/amane15/ecom_microservice/services/users/internal/store"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
+
+type config struct {
+	dsn  string
+	port int
+}
 
 func main() {
 	godotenv.Load()
 
-	cfg := internal.Config{
-		Port:  4000,
-		DbDSN: os.Getenv("DATABASE_URL"),
+	cfg := config{
+		port: 4000,
+		dsn:  os.Getenv("DATABASE_URL"),
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	db, err := openDB(cfg.DbDSN)
+	db, err := openDB(cfg.dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		return
@@ -33,8 +37,10 @@ func main() {
 
 	logger.Info("database connection pool established")
 
-	app := internal.NewApplication(cfg, logger, db)
-	handler := http.NewHandler(app)
+	userStore := store.NewUserStore(db)
+	userService := service.NewUserService(userStore)
+
+	handler := http.NewHandler(userService, logger)
 
 	logger.Info("Starting server on address :4000")
 	srv := platform.NewHTTPServer(":4000", handler.Routes())
@@ -46,20 +52,16 @@ func main() {
 	}
 }
 
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+func openDB(dsn string) (*pgxpool.Pool, error) {
+	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err = db.PingContext(ctx)
+	err = pool.Ping(context.Background())
 	if err != nil {
-		db.Close()
 		return nil, err
 	}
 
-	return db, nil
+	return pool, nil
 }
