@@ -54,10 +54,13 @@ func (h *Handler) createVariantHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	variant, err := h.productService.CreateVariant(r.Context(), id, input)
+	var validationErrors *data.ValidationErrors
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
 			httpx.BadRequestResponse(w, r, errors.New("variant with this slug already exists"))
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		default:
 			h.logger.Error("error while creating variant", "error", err)
 			httpx.ServerErrorResponse(w, r, err)
@@ -90,9 +93,12 @@ func (h *Handler) updateVariantHandler(w http.ResponseWriter, r *http.Request) {
 
 	variant, err := h.productService.UpdateVariant(r.Context(), id, input)
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			httpx.NotFoundResponse(w, r)
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		default:
 			h.logger.Error("error while updating variant", "error", err)
 			httpx.ServerErrorResponse(w, r, err)

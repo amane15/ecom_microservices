@@ -49,9 +49,12 @@ func (h *Handler) createCategoryHandler(w http.ResponseWriter, r *http.Request) 
 
 	category, err := h.categoryService.CreateCategory(r.Context(), input)
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
 			httpx.BadRequestResponse(w, r, errors.New("category already exists"))
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		default:
 			h.logger.Error("error while creating a category", "error", err)
 			httpx.ServerErrorResponse(w, r, err)
@@ -85,11 +88,15 @@ func (h *Handler) updateCategoryHandler(w http.ResponseWriter, r *http.Request) 
 
 	category, err := h.categoryService.UpdateCategory(r.Context(), id, input)
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrNoFieldsToUpdate):
 			httpx.BadRequestResponse(w, r, errors.New("no fields were provided"))
 		case errors.Is(err, data.ErrRecordNotFound):
 			httpx.NotFoundResponse(w, r)
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
+
 		default:
 			h.logger.Error("error while updating category", "error", err, "id", id)
 			httpx.ServerErrorResponse(w, r, err)
@@ -126,9 +133,12 @@ func (h *Handler) markActiveHandler(w http.ResponseWriter, r *http.Request) {
 
 	category, err := h.categoryService.UpdateCategory(r.Context(), id, &service.UpdateCategoryInput{IsActive: input.IsActive})
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			httpx.NotFoundResponse(w, r)
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		default:
 			h.logger.Error("error marking active category", "error", err, "id", id)
 			httpx.ServerErrorResponse(w, r, err)
@@ -148,7 +158,6 @@ func (h *Handler) listCategoriesHandler(w http.ResponseWriter, r *http.Request) 
 	queryParams := r.URL.Query()
 	limit := httpx.ReadInt(queryParams, "limit", 10)
 	offset := httpx.ReadInt(queryParams, "offset", 0)
-
 	categories, err := h.categoryService.ListCategories(r.Context(), int32(limit), int32(offset))
 	if err != nil {
 		h.logger.Error("error fetching categories", "error", err)

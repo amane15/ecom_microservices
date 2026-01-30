@@ -24,9 +24,12 @@ func (h *Handler) createProductHandler(w http.ResponseWriter, r *http.Request) {
 
 	product, err := h.productService.CreateProduct(r.Context(), input)
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrDuplicateSlug):
 			httpx.BadRequestResponse(w, r, errors.New("product already exists"))
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		default:
 			h.logger.Error("error while creating product", "error", err)
 			httpx.ServerErrorResponse(w, r, err)
@@ -91,9 +94,12 @@ func (h *Handler) updateProductHandler(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("updating product", "id", id, "body", input)
 	product, err := h.productService.UpdateProduct(r.Context(), id, input)
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrNoFieldsToUpdate):
 			httpx.BadRequestResponse(w, r, errors.New("no fields were provided"))
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		case errors.Is(err, data.ErrRecordNotFound):
 			httpx.NotFoundResponse(w, r)
 		default:
@@ -137,9 +143,12 @@ func (h *Handler) changeProductStatusHandler(w http.ResponseWriter, r *http.Requ
 		id,
 		&service.UpdateProductInput{Status: input.Status})
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			httpx.NotFoundResponse(w, r)
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		default:
 			h.logger.Info("error while changing product status", "error", err, "id", id)
 			httpx.ServerErrorResponse(w, r, err)
@@ -179,9 +188,12 @@ func (h *Handler) setDefaultVariantHandler(w http.ResponseWriter, r *http.Reques
 		id,
 		&service.UpdateProductInput{DefaultVariantID: input.DefaultVariantID})
 	if err != nil {
+		var validationErrors *data.ValidationErrors
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			httpx.BadRequestResponse(w, r, errors.New("product does not exists"))
+		case errors.As(err, &validationErrors):
+			httpx.FailedValidationResponse(w, r, validationErrors.Fields)
 		default:
 			h.logger.Error("error setting default variant", "error", err, "product_id", id, "variant_id", input.DefaultVariantID)
 			httpx.ServerErrorResponse(w, r, err)
