@@ -1,0 +1,16 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    queries: "internal/store/sqlstore/queries.sql"
+    schema: "migrations/"
+    gen:
+      go:
+        package: "sqlstore"
+        out: "internal/store/sqlstore"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: "pg_catalog.numeric"
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "Decimal"

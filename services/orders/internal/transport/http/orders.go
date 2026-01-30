@@ -11,24 +11,24 @@ import (
 func (h *Handler) getOrderHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.ReadIDParam(r)
 	if err != nil {
-		h.httpErrRes.NotFoundResponse(w, r)
+		httpx.NotFoundResponse(w, r)
 		return
 	}
 
-	order, err := h.app.Models.Orders.Get(id)
+	order, err := h.orderService.GetOrder(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			h.httpErrRes.NotFoundResponse(w, r)
+			httpx.NotFoundResponse(w, r)
 		default:
-			h.httpErrRes.ServerErrorResponse(w, r, err)
+			httpx.ServerErrorResponse(w, r, err)
 		}
 		return
 	}
 
 	err = httpx.WriteJSON(w, http.StatusOK, httpx.Envelope{"order": order}, nil)
 	if err != nil {
-		h.httpErrRes.ServerErrorResponse(w, r, err)
+		httpx.ServerErrorResponse(w, r, err)
 	}
 }
 

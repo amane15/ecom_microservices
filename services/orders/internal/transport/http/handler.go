@@ -1,15 +1,19 @@
 package http
 
 import (
-	"github.com/amane15/ecom_microservice/pkg/httpx"
-	"github.com/amane15/ecom_microservice/services/orders/internal"
+	"log/slog"
+
+	"github.com/amane15/ecom_microservice/services/orders/internal/service"
 )
 
 type Handler struct {
-	app        *internal.Application
-	httpErrRes *httpx.ErrorResponse
+	orderService *service.OrderService
+	logger       *slog.Logger
 }
 
-func NewHandler(app *internal.Application) *Handler {
-	return &Handler{app: app}
+func NewHandler(orderService *service.OrderService, logger *slog.Logger) *Handler {
+	return &Handler{
+		orderService: orderService,
+		logger:       logger,
+	}
 }

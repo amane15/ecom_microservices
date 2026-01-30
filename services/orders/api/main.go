@@ -2,39 +2,46 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/amane15/ecom_microservice/internal/platform"
-	"github.com/amane15/ecom_microservice/services/orders/internal"
+	"github.com/amane15/ecom_microservice/services/orders/internal/service"
+	"github.com/amane15/ecom_microservice/services/orders/internal/store"
 	"github.com/amane15/ecom_microservice/services/orders/internal/transport/http"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
+type config struct {
+	port string
+	dsn  string
+}
+
 func main() {
 	godotenv.Load()
 
-	cfg := internal.Config{
-		Port:  4000,
-		DbDSN: os.Getenv("DATABASE_URL"),
+	cfg := config{
+		port: "4000",
+		dsn:  os.Getenv("DATABASE_URL"),
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	db, err := openDB(cfg.DbDSN)
+	dbpool, err := openDB(cfg.dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
-	defer db.Close()
+	defer dbpool.Close()
 
 	logger.Info("database connection pool established")
 
-	app := internal.NewApplication(cfg, logger, db)
-	handler := http.NewHandler(app)
+	orderStore := store.NewOrderStore(dbpool)
+	itemStore := store.NewItemStore(dbpool)
+	orderService := service.NewOrderService(orderStore, itemStore)
+	handler := http.NewHandler(orderService, logger)
 
 	logger.Info("starting server on address :4002")
 	srv := platform.NewHTTPServer(":4002", handler.Routes())
@@ -44,20 +51,16 @@ func main() {
 	}
 }
 
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+func openDB(dsn string) (*pgxpool.Pool, error) {
+	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err = db.PingContext(ctx)
+	err = pool.Ping(context.Background())
 	if err != nil {
-		db.Close()
 		return nil, err
 	}
 
-	return db, nil
+	return pool, nil
 }
