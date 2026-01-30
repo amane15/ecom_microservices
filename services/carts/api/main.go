@@ -2,42 +2,49 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/amane15/ecom_microservice/internal/platform"
-	"github.com/amane15/ecom_microservice/services/carts/internal"
+	"github.com/amane15/ecom_microservice/services/carts/internal/service"
+	"github.com/amane15/ecom_microservice/services/carts/internal/store"
 	"github.com/amane15/ecom_microservice/services/carts/internal/transport/http"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
+type config struct {
+	dsn  string
+	port string
+}
+
 func main() {
 	godotenv.Load()
 
-	cfg := internal.Config{
-		Port:  os.Getenv("PORT"),
-		DbDSN: os.Getenv("DATABASE_URL"),
+	cfg := config{
+		port: os.Getenv("PORT"),
+		dsn:  os.Getenv("DATABASE_URL"),
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	db, err := openDB(cfg.DbDSN)
+	dbpool, err := openDB(cfg.dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
-	defer db.Close()
+	defer dbpool.Close()
 
 	logger.Info("database connection pool established")
 
-	app := internal.NewApplication(cfg, logger, db)
-	handler := http.NewHandler(app)
+	cartStore := store.NewCartStore(dbpool)
+	itemStore := store.NewItemStore(dbpool)
+	cartService := service.NewCartService(cartStore, itemStore)
+	handler := http.NewHandler(cartService, logger)
 
-	addr := fmt.Sprintf(":%s", cfg.Port)
+	addr := fmt.Sprintf(":%s", cfg.port)
 	srv := platform.NewHTTPServer(addr, handler.Routes())
 	logger.Info("starting server on", "addr", addr)
 	err = srv.Start()
@@ -47,20 +54,16 @@ func main() {
 	}
 }
 
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+func openDB(dsn string) (*pgxpool.Pool, error) {
+	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err = db.PingContext(ctx)
+	err = pool.Ping(context.Background())
 	if err != nil {
-		db.Close()
 		return nil, err
 	}
 
-	return db, nil
+	return pool, nil
 }
